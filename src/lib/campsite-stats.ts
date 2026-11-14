@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { ALL_CHECKINS_TAG, checkinsTag } from "@/lib/campsites";
+import { ALL_CHECKINS_TAG, SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
 import { FIRE_STATUS, GROUND_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
@@ -54,6 +54,62 @@ function breakdown<K extends string>(labels: Record<K, string>, values: K[]): Br
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** トップの一覧に出す、キャンプ場ごとの簡易集計 */
+export type CheckinSummary = {
+  count: number;
+  coldest: number | null;
+  coldestMonth: number | null;
+  topPeg: keyof typeof PEG_NEEDED | null;
+  /** 焚き火をしようとした日のうち、風で控えた割合（%）。しようとした日がなければ null */
+  windSkipRate: number | null;
+};
+
+/**
+ * 全キャンプ場の簡易集計をまとめて作る（一覧で1件ずつ問い合わせないため）。
+ * MVP の規模なら必要な列だけ全件取れば十分。投稿が数万件になったら SQL のビューに移す
+ */
+export async function getCheckinSummaries(): Promise<Record<string, CheckinSummary>> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(SUMMARIES_TAG, ALL_CHECKINS_TAG);
+
+  const supabase = createSupabasePublicClient();
+  const { data, error } = await supabase
+    .from("checkins")
+    .select("campsite_id, visited_on, min_temp_c, peg_needed, fire_status");
+  if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
+
+  const groups = new Map<string, Pick<Row, "visited_on" | "min_temp_c" | "peg_needed" | "fire_status">[]>();
+  for (const r of (data ?? []) as (Row & { campsite_id: string })[]) {
+    groups.set(r.campsite_id, [...(groups.get(r.campsite_id) ?? []), r]);
+  }
+
+  const result: Record<string, CheckinSummary> = {};
+  for (const [campsiteId, rows] of groups) {
+    let coldest: number | null = null;
+    let coldestMonth: number | null = null;
+    for (const r of rows) {
+      if (r.min_temp_c == null) continue;
+      const t = Number(r.min_temp_c);
+      if (coldest == null || t < coldest) {
+        coldest = t;
+        coldestMonth = Number(r.visited_on.slice(5, 7));
+      }
+    }
+    const peg = breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed))[0];
+    const done = rows.filter((r) => r.fire_status === "done").length;
+    const skipped = rows.filter((r) => r.fire_status === "skipped_wind").length;
+    result[campsiteId] = {
+      count: rows.length,
+      coldest,
+      coldestMonth,
+      topPeg: peg?.count ? peg.key : null,
+      windSkipRate: done + skipped ? Math.round((skipped / (done + skipped)) * 100) : null,
+    };
+  }
+  return result;
+}
 
 /**
  * キャンプ場の現地コンディションの集計。投稿数はキャンプ場ごとに多くても数百件なので、

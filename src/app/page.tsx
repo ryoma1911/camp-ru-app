@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Tag } from "@/components/tag";
+import { getCheckinSummaries, type CheckinSummary } from "@/lib/campsite-stats";
 import { getCampsites } from "@/lib/campsites";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -7,7 +8,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 export default async function Home() {
   if (!isSupabaseConfigured) return <SetupNotice />;
 
-  const campsites = await getCampsites();
+  const [campsites, summaries] = await Promise.all([getCampsites(), getCheckinSummaries()]);
 
   return (
     <div className="space-y-6">
@@ -40,11 +41,56 @@ export default async function Home() {
                 {c.has_shower && <Tag>シャワー</Tag>}
                 {c.has_bath && <Tag>風呂</Tag>}
               </div>
+              <SummaryRow summary={summaries[c.id]} />
               </Link>
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// 一覧で横に並べるため、ペグは短い言い方にする
+const PEG_SHORT = {
+  plastic: "プラペグでOK",
+  steel: "スチール",
+  forged: "鍛造",
+  rocky: "石が多い",
+} as const;
+
+/** キャン活の簡易集計（主役の3指標）。施設の公式情報（タグ）と区別するため色付きの帯にする */
+function SummaryRow({ summary }: { summary?: CheckinSummary }) {
+  if (!summary) {
+    return <p className="mt-3 text-xs text-stone-400">キャン活はまだありません</p>;
+  }
+  return (
+    <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2">
+      <p className="text-[11px] text-emerald-900/70">キャン活{summary.count}件の集計</p>
+      <dl className="mt-1 grid grid-cols-3 gap-2 text-sm">
+        <Stat
+          label="最低気温"
+          value={summary.coldest != null ? `${summary.coldest}℃` : "–"}
+          sub={summary.coldestMonth ? `${summary.coldestMonth}月` : undefined}
+        />
+        <Stat label="ペグ" value={summary.topPeg ? PEG_SHORT[summary.topPeg] : "–"} />
+        <Stat
+          label="風で焚き火控え"
+          value={summary.windSkipRate != null ? `${summary.windSkipRate}%` : "–"}
+        />
+      </dl>
+    </div>
+  );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[11px] text-stone-500">{label}</dt>
+      <dd className="truncate font-bold text-stone-900">
+        {value}
+        {sub && <span className="ml-1 text-[11px] font-normal text-stone-500">{sub}</span>}
+      </dd>
     </div>
   );
 }

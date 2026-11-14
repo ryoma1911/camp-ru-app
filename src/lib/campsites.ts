@@ -13,6 +13,8 @@ export const CHECKIN_COLUMNS =
 export const checkinsTag = (campsiteId: string) => `checkins-${campsiteId}`;
 /** ニックネーム変更など、全キャンプ場のキャン活表示に影響する変更で使う */
 export const ALL_CHECKINS_TAG = "checkins";
+/** トップの一覧に出す簡易集計。投稿・編集・削除のたびに入れ替える */
+export const SUMMARIES_TAG = "checkin-summaries";
 
 /** キャンプ場一覧（公開データなのでサーバーでキャッシュする） */
 export async function getCampsites(): Promise<Campsite[]> {

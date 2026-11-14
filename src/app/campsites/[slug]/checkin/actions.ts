@@ -2,7 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkinsTag } from "@/lib/campsites";
+import { SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
 import { parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -37,5 +37,6 @@ export async function createCheckin(
   }
 
   updateTag(checkinsTag(campsite.id));
+  updateTag(SUMMARIES_TAG);
   redirect(`/campsites/${campsite.slug}?posted=1`);
 }

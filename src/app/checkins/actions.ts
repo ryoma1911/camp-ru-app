@@ -2,7 +2,7 @@
 
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkinsTag } from "@/lib/campsites";
+import { SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
 import { PHOTO_BUCKET, parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -51,6 +51,7 @@ export async function updateCheckin(
   }
 
   updateTag(checkinsTag(target.campsiteId));
+  updateTag(SUMMARIES_TAG);
   redirect(`/campsites/${target.slug}?updated=1`);
 }
 
@@ -84,6 +85,7 @@ export async function deleteCheckin(target: { id: string; campsiteId: string }):
   }
 
   updateTag(checkinsTag(target.campsiteId));
+  updateTag(SUMMARIES_TAG);
   refresh();
   return { error: null };
 }
