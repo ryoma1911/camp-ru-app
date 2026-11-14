@@ -1,19 +1,26 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useState } from "react";
+import type { CheckinFormState } from "@/lib/checkin-input";
 import {
   BUG_LEVEL,
   FIRE_STATUS,
   GROUND_TYPE,
   PEG_NEEDED,
   SLEEP_QUALITY,
+  type Checkin,
 } from "@/lib/labels";
-import type { CheckinFormState } from "./actions";
 import { PhotoPicker } from "./photo-picker";
 
 type Props = {
   action: (prev: CheckinFormState, formData: FormData) => Promise<CheckinFormState>;
   userId: string;
+  /** 編集のときは前回の内容を入れて開く */
+  initial?: Checkin;
+  submitLabel?: string;
+  /** キャンセルで戻る先（ブラウザの履歴がないとき） */
+  cancelHref: string;
 };
 
 // 気温は iPhone のテンキーでマイナスが打てないため、選択式にする
@@ -24,10 +31,25 @@ function todayInJapan() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
 }
 
-export function CheckinForm({ action, userId }: Props) {
+const yesNo = (v: boolean | null | undefined) => (v == null ? undefined : v ? "yes" : "no");
+const str = (v: number | string | null | undefined) => (v == null ? undefined : String(v));
+
+export function CheckinForm({ action, userId, initial, submitLabel = "キャン活を投稿する", cancelHref }: Props) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, { error: null });
   const [uploading, setUploading] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [today] = useState(todayInJapan);
+
+  /** 入力があれば確認してから、元のページに戻る */
+  function cancel() {
+    if (dirty && !confirm("入力した内容は保存されません。キャンセルしますか？")) return;
+    if (window.history.length > 1) router.back();
+    else router.push(cancelHref);
+  }
+  const initialPhotos = [...(initial?.checkin_photos ?? [])]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((p) => p.storage_path);
 
   return (
     <form
@@ -37,6 +59,7 @@ export function CheckinForm({ action, userId }: Props) {
         const formData = new FormData(e.currentTarget);
         startTransition(() => formAction(formData));
       }}
+      onChange={() => setDirty(true)}
       className="space-y-8"
     >
       <Field label="行った日">
@@ -44,7 +67,7 @@ export function CheckinForm({ action, userId }: Props) {
           type="date"
           name="visited_on"
           required
-          defaultValue={today}
+          defaultValue={initial?.visited_on ?? today}
           max={today}
           className="h-11 rounded-lg border border-stone-300 bg-white px-3"
         />
@@ -53,7 +76,11 @@ export function CheckinForm({ action, userId }: Props) {
       <Section number="①" title="気温と睡眠">
         <Field label="夜の最低気温">
           <div className="flex flex-wrap items-center gap-3">
-            <select name="min_temp_c" defaultValue="" className="h-11 rounded-lg border border-stone-300 bg-white px-3">
+            <select
+              name="min_temp_c"
+              defaultValue={initial?.min_temp_c != null ? String(Number(initial.min_temp_c)) : ""}
+              className="h-11 rounded-lg border border-stone-300 bg-white px-3"
+            >
               <option value="">わからない</option>
               {TEMPS.map((t) => (
                 <option key={t} value={t}>
@@ -61,16 +88,24 @@ export function CheckinForm({ action, userId }: Props) {
                 </option>
               ))}
             </select>
-            <Chips name="temp_measured" options={{ yes: "温度計で実測", no: "体感" }} defaultValue="no" />
+            <Chips
+              name="temp_measured"
+              options={{ yes: "温度計で実測", no: "体感" }}
+              defaultValue={yesNo(initial?.temp_measured) ?? "no"}
+            />
           </div>
         </Field>
         <Field label="いつの気温？">
-          <Chips name="temp_at_dawn" options={{ yes: "明け方", no: "それ以外" }} defaultValue="yes" />
+          <Chips
+            name="temp_at_dawn"
+            options={{ yes: "明け方", no: "それ以外" }}
+            defaultValue={yesNo(initial?.temp_at_dawn) ?? "yes"}
+          />
         </Field>
         <Field label="寝袋の快適温度" hint="わかれば。寝袋のタグに書いてあります">
           <select
             name="sleeping_bag_comfort_c"
-            defaultValue=""
+            defaultValue={str(initial?.sleeping_bag_comfort_c) ?? ""}
             className="h-11 rounded-lg border border-stone-300 bg-white px-3"
           >
             <option value="">わからない</option>
@@ -82,46 +117,55 @@ export function CheckinForm({ action, userId }: Props) {
           </select>
         </Field>
         <Field label="眠れた？">
-          <Chips name="sleep_quality" options={SLEEP_QUALITY} />
+          <Chips name="sleep_quality" options={SLEEP_QUALITY} defaultValue={str(initial?.sleep_quality)} />
         </Field>
       </Section>
 
       <Section number="②" title="地面とペグ">
         <Field label="地面" required>
-          <Chips name="ground_type" options={GROUND_TYPE} required />
+          <Chips name="ground_type" options={GROUND_TYPE} required defaultValue={initial?.ground_type} />
         </Field>
         <Field label="必要だったペグ" required>
-          <Chips name="peg_needed" options={PEG_NEEDED} required />
+          <Chips name="peg_needed" options={PEG_NEEDED} required defaultValue={initial?.peg_needed} />
         </Field>
       </Section>
 
       <Section number="③" title="焚き火">
         <Field label="焚き火できた？" required>
-          <Chips name="fire_status" options={FIRE_STATUS} required />
+          <Chips name="fire_status" options={FIRE_STATUS} required defaultValue={initial?.fire_status} />
         </Field>
       </Section>
 
       <Section title="そのほか（任意）">
         <Field label="虫">
-          <Chips name="bug_level" options={BUG_LEVEL} />
+          <Chips name="bug_level" options={BUG_LEVEL} defaultValue={str(initial?.bug_level)} />
         </Field>
         <Field label="サイトに車を乗り入れできた？">
-          <Chips name="car_access_ok" options={{ yes: "できた", no: "できなかった" }} />
+          <Chips
+            name="car_access_ok"
+            options={{ yes: "できた", no: "できなかった" }}
+            defaultValue={yesNo(initial?.car_access_ok)}
+          />
         </Field>
         <Field label="炊事場でお湯は出た？">
-          <Chips name="hot_water_ok" options={{ yes: "出た", no: "出なかった" }} />
+          <Chips
+            name="hot_water_ok"
+            options={{ yes: "出た", no: "出なかった" }}
+            defaultValue={yesNo(initial?.hot_water_ok)}
+          />
         </Field>
         <Field label="ひとこと">
           <textarea
             name="comment"
             maxLength={500}
             rows={3}
+            defaultValue={initial?.comment ?? ""}
             placeholder="例：夜中に風が強くなり、焚き火は早めに切り上げました"
             className="w-full rounded-lg border border-stone-300 bg-white p-3"
           />
         </Field>
         <Field label="写真（4枚まで）">
-          <PhotoPicker userId={userId} onUploadingChange={setUploading} />
+          <PhotoPicker userId={userId} initialPaths={initialPhotos} onUploadingChange={setUploading} />
         </Field>
       </Section>
 
@@ -131,12 +175,27 @@ export function CheckinForm({ action, userId }: Props) {
         </p>
       )}
 
-      <button
-        disabled={pending || uploading}
-        className="h-12 w-full rounded-full bg-emerald-700 font-bold text-white hover:bg-emerald-800 disabled:opacity-50"
-      >
-        {pending ? "投稿しています…" : uploading ? "写真をアップロード中…" : "キャン活を投稿する"}
-      </button>
+      {/*
+        ボタンの並び（Apple / Google のガイドラインや主要サイトの定番に合わせる）
+        ・スマホ：保存を上・キャンセルを下に、どちらも横幅いっぱい（親指で押しやすい位置に主な操作）
+        ・PC：右寄せで［キャンセル］［保存］の順。主な操作（保存）を一番右に置く
+      */}
+      <div className="flex flex-col gap-3 sm:flex-row-reverse">
+        <button
+          disabled={pending || uploading}
+          className="h-12 w-full rounded-full bg-emerald-700 font-bold text-white hover:bg-emerald-800 disabled:opacity-50 sm:w-auto sm:min-w-48 sm:px-8"
+        >
+          {pending ? "保存しています…" : uploading ? "写真をアップロード中…" : submitLabel}
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={cancel}
+          className="h-12 w-full rounded-full border border-stone-300 bg-white font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-50 sm:w-auto sm:px-8"
+        >
+          キャンセル
+        </button>
+      </div>
     </form>
   );
 }

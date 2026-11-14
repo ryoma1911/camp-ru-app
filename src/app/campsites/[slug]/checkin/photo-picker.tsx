@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient, photoPublicUrl } from "@/lib/supabase/client";
 
 const MAX_PHOTOS = 4;
 const MAX_EDGE = 1600; // 長辺のピクセル数
@@ -9,9 +9,26 @@ const JPEG_QUALITY = 0.8;
 
 type Photo = { key: string; preview: string; path: string | null; failed: boolean };
 
-/** 選んだ写真をブラウザで縮小してから Supabase Storage に直接アップロードする */
+const looksLikeHeic = (file: File) =>
+  /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+
+/**
+ * 写真を読み込む。まずブラウザ自身に任せ（Safari は HEIC も読める）、
+ * 読めなかった HEIC だけ変換ライブラリを使う。ライブラリは大きいので、必要なときだけ読み込む
+ */
+async function decode(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (nativeError) {
+    const { heicTo, isHeic } = await import("heic-to");
+    if (!looksLikeHeic(file) && !(await isHeic(file))) throw nativeError;
+    return heicTo({ blob: file, type: "bitmap" });
+  }
+}
+
+/** 選んだ写真をブラウザで縮小して JPEG にしてから Supabase Storage に直接アップロードする */
 async function compress(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const bitmap = await decode(file);
   const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
@@ -25,12 +42,17 @@ async function compress(file: File): Promise<Blob> {
 
 export function PhotoPicker({
   userId,
+  initialPaths = [],
   onUploadingChange,
 }: {
   userId: string;
+  /** 編集時にすでに付いている写真 */
+  initialPaths?: string[];
   onUploadingChange: (uploading: boolean) => void;
 }) {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>(() =>
+    initialPaths.map((path) => ({ key: path, preview: photoPublicUrl(path), path, failed: false })),
+  );
   const uploading = photos.some((p) => !p.path && !p.failed);
 
   useEffect(() => onUploadingChange(uploading), [uploading, onUploadingChange]);
@@ -56,6 +78,10 @@ export function PhotoPicker({
       added.map(async ({ key, file }) => {
         try {
           const blob = await compress(file);
+          // HEIC はブラウザによってはそのまま表示できないので、変換後の JPEG でプレビューし直す
+          const preview = URL.createObjectURL(blob);
+          setPhotos((prev) => prev.map((p) => (p.key === key ? { ...p, preview } : p)));
+
           const path = `${userId}/${key}.jpg`;
           const { error } = await supabase.storage
             .from("checkin-photos")
@@ -83,7 +109,7 @@ export function PhotoPicker({
             <img src={p.preview} alt="" className="h-full w-full object-cover" />
             {!p.path && (
               <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs text-white">
-                {p.failed ? "失敗" : "送信中…"}
+                {p.failed ? "失敗" : "処理中…"}
               </span>
             )}
             <button
@@ -102,7 +128,8 @@ export function PhotoPicker({
             ＋
             <input
               type="file"
-              accept="image/*"
+              // PC のブラウザでも iPhone の写真（.heic）を選べるように拡張子も指定する
+              accept="image/*,.heic,.heif"
               multiple
               className="sr-only"
               onChange={(e) => {
@@ -114,7 +141,9 @@ export function PhotoPicker({
         )}
       </div>
       {photos.some((p) => p.failed) && (
-        <p className="text-xs text-red-700">アップロードに失敗した写真があります。✕で外して選び直してください。</p>
+        <p className="text-xs text-red-700">
+          読み込めなかった写真があります。✕で外して、別の写真を選んでください。
+        </p>
       )}
     </div>
   );

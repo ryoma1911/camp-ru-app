@@ -63,5 +63,5 @@ async function FormOrLogin({ campsite }: { campsite: Campsite }) {
     );
   }
   const action = createCheckin.bind(null, { id: campsite.id, slug: campsite.slug });
-  return <CheckinForm action={action} userId={userId} />;
+  return <CheckinForm action={action} userId={userId} cancelHref={`/campsites/${campsite.slug}`} />;
 }

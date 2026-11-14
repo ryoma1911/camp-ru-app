@@ -3,18 +3,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Tag } from "@/components/tag";
 import { getCampsite, getCampsites, getRecentCheckins } from "@/lib/campsites";
-import {
-  BUG_LEVEL,
-  FIRE_RULE,
-  FIRE_STATUS,
-  GROUND_TYPE,
-  LOCATION_TYPE,
-  PEG_NEEDED,
-  SITE_STYLE,
-  SLEEP_QUALITY,
-  type Checkin,
-} from "@/lib/labels";
-import { supabaseUrl } from "@/lib/supabase/env";
+import { CheckinCard } from "@/components/checkin-card";
+import { CheckinOwnerActions } from "@/components/checkin-owner-actions";
+import { getCurrentUserId } from "@/lib/auth";
+import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 
 export async function generateStaticParams() {
   const campsites = await getCampsites();
@@ -100,17 +92,17 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
 }
 
 async function PostedNotice({ searchParams }: Pick<Props, "searchParams">) {
-  const { posted } = await searchParams;
-  if (posted !== "1") return null;
+  const { posted, updated } = await searchParams;
+  const message =
+    posted === "1" ? "キャン活を投稿しました。ありがとうございます！" : updated === "1" ? "キャン活を更新しました。" : null;
+  if (!message) return null;
   return (
-    <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
-      キャン活を投稿しました。ありがとうございます！
-    </p>
+    <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">{message}</p>
   );
 }
 
 async function CheckinList({ campsiteId }: { campsiteId: string }) {
-  const checkins = await getRecentCheckins(campsiteId);
+  const [checkins, userId] = await Promise.all([getRecentCheckins(campsiteId), getCurrentUserId()]);
   if (checkins.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-stone-300 p-6 text-sm text-stone-600">
@@ -121,68 +113,13 @@ async function CheckinList({ campsiteId }: { campsiteId: string }) {
   return (
     <ul className="space-y-3">
       {checkins.map((c) => (
-        <CheckinCard key={c.id} checkin={c} />
+        <CheckinCard
+          key={c.id}
+          checkin={c}
+          heading={c.profiles?.display_name ?? "キャンパー"}
+          actions={c.user_id === userId ? <CheckinOwnerActions id={c.id} campsiteId={campsiteId} /> : null}
+        />
       ))}
     </ul>
-  );
-}
-
-function CheckinCard({ checkin: c }: { checkin: Checkin }) {
-  const temp =
-    c.min_temp_c != null
-      ? `${c.temp_at_dawn ? "明け方" : "最低"} ${Number(c.min_temp_c)}℃（${c.temp_measured ? "実測" : "体感"}）`
-      : null;
-  const photos = [...c.checkin_photos].sort((a, b) => a.sort_order - b.sort_order);
-
-  return (
-    <li className="space-y-3 rounded-lg border border-stone-200 bg-white p-4">
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium">{c.profiles?.display_name ?? "キャンパー"}</span>
-        <time className="text-stone-500">{c.visited_on.replaceAll("-", "/")}</time>
-      </div>
-
-      <dl className="grid grid-cols-[5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
-        <dt className="text-stone-500">気温</dt>
-        <dd>
-          {temp ?? "記録なし"}
-          {c.sleep_quality && (
-            <span className="ml-2 text-stone-600">
-              {c.sleeping_bag_comfort_c != null && `快適${c.sleeping_bag_comfort_c}℃の寝袋で`}
-              {SLEEP_QUALITY[c.sleep_quality]}
-            </span>
-          )}
-        </dd>
-        <dt className="text-stone-500">地面・ペグ</dt>
-        <dd>
-          {GROUND_TYPE[c.ground_type]}／{PEG_NEEDED[c.peg_needed]}
-        </dd>
-        <dt className="text-stone-500">焚き火</dt>
-        <dd>{FIRE_STATUS[c.fire_status]}</dd>
-        {c.bug_level && (
-          <>
-            <dt className="text-stone-500">虫</dt>
-            <dd>{BUG_LEVEL[c.bug_level]}</dd>
-          </>
-        )}
-      </dl>
-
-      {c.comment && <p className="whitespace-pre-wrap text-sm leading-6">{c.comment}</p>}
-
-      {photos.length > 0 && (
-        <div className="grid grid-cols-4 gap-2">
-          {photos.map((p) => (
-            // Supabase Storage の公開URLをそのまま表示（MVPでは画像最適化は使わない）
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={p.storage_path}
-              src={`${supabaseUrl}/storage/v1/object/public/checkin-photos/${p.storage_path}`}
-              alt=""
-              loading="lazy"
-              className="aspect-square w-full rounded object-cover"
-            />
-          ))}
-        </div>
-      )}
-    </li>
   );
 }

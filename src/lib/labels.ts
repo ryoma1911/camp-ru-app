@@ -74,6 +74,8 @@ export type Campsite = {
 
 export type Checkin = {
   id: string;
+  user_id: string;
+  campsite_id: string;
   visited_on: string;
   min_temp_c: number | null;
   temp_measured: boolean;

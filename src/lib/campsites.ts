@@ -7,6 +7,9 @@ import type { Campsite, Checkin } from "@/lib/labels";
 const CAMPSITE_COLUMNS =
   "id, slug, name, prefecture, address, lat, lng, location_type, site_style, car_access, has_hot_water, has_shower, has_bath, fire_rule, official_url";
 
+export const CHECKIN_COLUMNS =
+  "id, user_id, campsite_id, visited_on, min_temp_c, temp_measured, temp_at_dawn, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, car_access_ok, hot_water_ok, comment, created_at, profiles(display_name, avatar_url), checkin_photos(storage_path, sort_order)";
+
 export const checkinsTag = (campsiteId: string) => `checkins-${campsiteId}`;
 /** ニックネーム変更など、全キャンプ場のキャン活表示に影響する変更で使う */
 export const ALL_CHECKINS_TAG = "checkins";
@@ -54,9 +57,7 @@ export async function getRecentCheckins(campsiteId: string): Promise<Checkin[]> 
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("checkins")
-    .select(
-      "id, visited_on, min_temp_c, temp_measured, temp_at_dawn, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, car_access_ok, hot_water_ok, comment, created_at, profiles(display_name, avatar_url), checkin_photos(storage_path, sort_order)",
-    )
+    .select(CHECKIN_COLUMNS)
     .eq("campsite_id", campsiteId)
     .order("visited_on", { ascending: false })
     .order("created_at", { ascending: false })
