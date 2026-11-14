@@ -35,16 +35,23 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
     );
   }
 
+  const hero = (
+    // key：検索するたびに検索エリアを閉じた状態に戻す
+    <HeroSearch
+      key={toQuery(filters)}
+      campsites={campsites}
+      summaries={summaries}
+      currentTab={filters.tab}
+      compact={searched}
+    />
+  );
+
+  // トップ（まだ検索していない状態）は検索エリアだけを出す。一覧と絞り込み欄は検索したあとに出す
+  if (!searched) return hero;
+
   return (
     <div className="space-y-5">
-      {/* key：検索するたびに検索エリアを閉じた状態に戻す */}
-      <HeroSearch
-        key={toQuery(filters)}
-        campsites={campsites}
-        summaries={summaries}
-        currentTab={filters.tab}
-        compact={searched}
-      />
+      {hero}
 
       <div className="grid gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
         <RefinePanel campsites={campsites} summaries={summaries} filters={filters} active={result.active} />

@@ -146,8 +146,6 @@ function Fields({
         </div>
       )}
 
-      {/* URL のキーワードが変わったら入力欄も入れ直す */}
-      <KeywordField key={filters.q} initial={filters.q} onSubmit={(q) => onChange({ ...filters, q })} />
 
       <div>
         <div className="mb-1 flex items-baseline justify-between">
@@ -165,29 +163,5 @@ function Fields({
 
       <FeatureFields filters={filters} onChange={onChange} countFor={countFor} compact />
     </div>
-  );
-}
-
-function KeywordField({ initial, onSubmit }: { initial: string; onSubmit: (q: string) => void }) {
-  const [keyword, setKeyword] = useState(initial);
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit(keyword.trim());
-      }}
-    >
-      <GroupTitle>キーワード</GroupTitle>
-      <div className="flex gap-2">
-        <input
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="名前・エリアで絞る"
-          aria-label="キーワードで絞る"
-          className="h-9 min-w-0 flex-1 rounded-lg border border-stone-300 px-2 text-sm"
-        />
-        <button className="h-9 shrink-0 rounded-lg border border-stone-300 px-3 text-sm hover:bg-stone-100">絞る</button>
-      </div>
-    </form>
   );
 }
