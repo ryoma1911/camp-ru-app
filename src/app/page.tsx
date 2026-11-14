@@ -1,15 +1,31 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
+import { CampsiteShelf } from "@/components/campsite-shelf";
 import { HeroSearch } from "@/components/search/hero-search";
 import { RefinePanel } from "@/components/search/refine-panel";
 import { Tag } from "@/components/tag";
 import { getCheckinSummaries, type CheckinSummary } from "@/lib/campsite-stats";
 import { getCampsites } from "@/lib/campsites";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Campsite } from "@/lib/labels";
-import { hasConditions, parseFilters, searchCampsites, toQuery, type Filters, type SortKey } from "@/lib/search";
+import {
+  NEW_DAYS,
+  byNewest,
+  hasConditions,
+  parseFilters,
+  pickRecommended,
+  searchCampsites,
+  toQuery,
+  type Filters,
+  type SortKey,
+} from "@/lib/search";
+import { currentMonthInJapan, isWithinDays } from "@/lib/time";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 type Props = PageProps<"/">;
+
+/** トップの「おすすめ」「最近登録された」に出す件数（PC・スマホ共通） */
+const SHELF_SIZE = 6;
 
 export default function Home(props: Props) {
   if (!isSupabaseConfigured) return <SetupNotice />;
@@ -23,8 +39,11 @@ export default function Home(props: Props) {
 
 async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
   const [params, campsites, summaries] = await Promise.all([searchParams, getCampsites(), getCheckinSummaries()]);
+  // ここから先は「今月」「登録から30日以内」など現在時刻を使うので、リクエスト時にだけ動かす
+  await connection();
+  const month = currentMonthInJapan();
   const filters = parseFilters(params);
-  const result = searchCampsites(campsites, summaries, filters);
+  const result = searchCampsites(campsites, summaries, filters, month);
   const searched = hasConditions(filters);
 
   if (campsites.length === 0) {
@@ -46,8 +65,35 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
     />
   );
 
-  // トップ（まだ検索していない状態）は検索エリアだけを出す。一覧と絞り込み欄は検索したあとに出す
-  if (!searched) return hero;
+  // トップ（まだ検索していない状態）は、検索エリアの下に「おすすめ」「最近登録された」の欄だけを出す。
+  // 一覧と絞り込み欄は検索したあとに出す
+  if (!searched) {
+    const recommended = pickRecommended(campsites, summaries, month, SHELF_SIZE);
+    const recent = [...campsites].sort(byNewest).slice(0, SHELF_SIZE);
+    return (
+      <div className="space-y-10">
+        {hero}
+        <CampsiteShelf
+          title="おすすめのキャンプ場"
+          note={recommended.hasAuto ? `${month}月に行く人に人気` : "Campるのおすすめ"}
+          moreHref={toQuery({ sort: "recommend" })}
+          month={month}
+          items={recommended.items.map((c) => ({ campsite: c, summary: summaries[c.id] }))}
+        />
+        <CampsiteShelf
+          title="最近登録されたキャンプ場"
+          note="新しく追加された順"
+          moreHref={toQuery({ sort: "new" })}
+          month={month}
+          items={recent.map((c) => ({
+            campsite: c,
+            summary: summaries[c.id],
+            isNew: isWithinDays(c.created_at, NEW_DAYS),
+          }))}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -123,6 +169,8 @@ function SortLinks({ filters }: { filters: Filters }) {
     { key: "posts", label: "キャン活が多い順" },
     { key: "warm", label: filters.month ? `${filters.month}月に暖かい順` : "暖かい順", disabled: !filters.month },
     { key: "pref", label: "都道府県順" },
+    { key: "recommend", label: "おすすめ順" },
+    { key: "new", label: "新着順" },
   ];
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">

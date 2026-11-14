@@ -70,6 +70,9 @@ export type Campsite = {
   has_bath: boolean;
   fire_rule: keyof typeof FIRE_RULE;
   official_url: string | null;
+  /** 数字があれば「おすすめ」。小さいほど先に表示する */
+  featured_rank: number | null;
+  created_at: string;
 };
 
 export type Checkin = {

@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { Campsite, Checkin } from "@/lib/labels";
 
 const CAMPSITE_COLUMNS =
-  "id, slug, name, prefecture, address, lat, lng, location_type, site_style, car_access, has_hot_water, has_shower, has_bath, fire_rule, official_url";
+  "id, slug, name, prefecture, address, lat, lng, location_type, site_style, car_access, has_hot_water, has_shower, has_bath, fire_rule, official_url, featured_rank, created_at";
 
 export const CHECKIN_COLUMNS =
   "id, user_id, campsite_id, visited_on, min_temp_c, temp_measured, temp_at_dawn, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, car_access_ok, hot_water_ok, comment, created_at, profiles(display_name, avatar_url), checkin_photos(storage_path, sort_order)";

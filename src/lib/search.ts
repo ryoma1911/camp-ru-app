@@ -7,7 +7,7 @@ import { GROUND_TYPE, LOCATION_TYPE, PEG_NEEDED, SITE_STYLE, type Campsite } fro
 export const TEMP_OPTIONS = [-10, -5, 0, 5] as const;
 export const WIND_MAX_RATE = 20; // 「風で控えた日が少ない」とみなす上限（%）
 
-export type SortKey = "posts" | "warm" | "pref";
+export type SortKey = "posts" | "warm" | "pref" | "new" | "recommend";
 /** どの探し方（タブ）から来たか */
 export type SearchTab = "keyword" | "pref" | "feature";
 
@@ -102,7 +102,7 @@ export function parseFilters(params: Params): Filters {
     grounds: pickAll(GROUND_TYPE, many(params.ground)),
     month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : null,
     minTemp: minTemp !== "" && (TEMP_OPTIONS as readonly number[]).includes(Number(minTemp)) ? Number(minTemp) : null,
-    sort: sort === "warm" || sort === "pref" ? sort : "posts",
+    sort: sort === "warm" || sort === "pref" || sort === "new" || sort === "recommend" ? sort : "posts",
     nodata: one(params.nodata) === "1",
   };
 }
@@ -126,8 +126,46 @@ export function toQuery(f: Partial<Filters>): string {
   return s ? `/?${s}` : "/";
 }
 
-/** 検索結果の画面を出すか（何か条件があるか、タブから検索したか） */
-export const hasConditions = (f: Filters) => toQuery({ ...f, sort: "posts", nodata: false }) !== "/";
+/** 検索結果の画面を出すか（何か条件があるか、タブから検索したか、並び順を指定したか） */
+export const hasConditions = (f: Filters) => toQuery({ ...f, nodata: false }) !== "/";
+
+/* ---------- 新着・おすすめの並び順（トップの欄と、検索結果の並べ替えで共通） ---------- */
+
+/** 登録から何日以内を「NEW」とするか */
+export const NEW_DAYS = 30;
+
+/** 登録日時の新しい順 */
+export const byNewest = (a: Campsite, b: Campsite) =>
+  b.created_at.localeCompare(a.created_at) || a.name.localeCompare(b.name, "ja");
+
+/**
+ * おすすめ順：運営が選んだもの（featured_rank の小さい順）→ 今月のキャン活が多い順 → 全期間のキャン活が多い順。
+ * month は日本時間の今月（1〜12）
+ */
+export function byRecommended(summaries: Record<string, CheckinSummary>, month: number) {
+  const rank = (c: Campsite) => c.featured_rank ?? Number.POSITIVE_INFINITY;
+  const inMonth = (c: Campsite) => summaries[c.id]?.monthCount[month] ?? 0;
+  const total = (c: Campsite) => summaries[c.id]?.count ?? 0;
+  return (a: Campsite, b: Campsite) =>
+    rank(a) - rank(b) || inMonth(b) - inMonth(a) || total(b) - total(a) || a.name.localeCompare(b.name, "ja");
+}
+
+/**
+ * トップの「おすすめのキャンプ場」。運営が選んだものを先に出し、残りの枠を自動で埋める。
+ * 自動の枠には、キャン活が1件以上あるキャンプ場だけを使う（投稿のないキャンプ場はおすすめしない）
+ */
+export function pickRecommended(
+  campsites: Campsite[],
+  summaries: Record<string, CheckinSummary>,
+  month: number,
+  limit: number,
+): { items: Campsite[]; hasAuto: boolean } {
+  const items = [...campsites]
+    .filter((c) => c.featured_rank != null || (summaries[c.id]?.count ?? 0) > 0)
+    .sort(byRecommended(summaries, month))
+    .slice(0, limit);
+  return { items, hasAuto: items.some((c) => c.featured_rank == null) };
+}
 
 /** 配列の値を付け外しする */
 export const toggle = <T,>(list: T[], value: T) =>
@@ -267,11 +305,16 @@ export function searchCampsites(
   campsites: Campsite[],
   summaries: Record<string, CheckinSummary>,
   f: Filters,
+  /** 日本時間の今月（おすすめ順で使う） */
+  currentMonth: number,
 ): SearchResult {
   const { checks, matched, noData } = run(campsites, summaries, f);
 
   const warmest = (c: Campsite) => (f.month ? summaries[c.id]?.monthAvgTemp[f.month] ?? -Infinity : -Infinity);
+  const recommended = byRecommended(summaries, currentMonth);
   const sorted = [...matched].sort((a, b) => {
+    if (f.sort === "new") return byNewest(a, b);
+    if (f.sort === "recommend") return recommended(a, b);
     if (f.sort === "pref") return byPrefecture(a.prefecture, b.prefecture) || a.name.localeCompare(b.name, "ja");
     if (f.sort === "warm" && f.month) return warmest(b) - warmest(a);
     return (summaries[b.id]?.count ?? 0) - (summaries[a.id]?.count ?? 0) || a.name.localeCompare(b.name, "ja");
