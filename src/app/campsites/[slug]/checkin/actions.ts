@@ -38,5 +38,6 @@ export async function createCheckin(
 
   updateTag(checkinsTag(campsite.id));
   updateTag(SUMMARIES_TAG);
-  redirect(`/campsites/${campsite.slug}?posted=1`);
+  // 投稿1件のページに移り、Xでの共有をすすめる
+  redirect(`/checkins/${checkin.id}?posted=1`);
 }

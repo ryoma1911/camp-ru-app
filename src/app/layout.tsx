@@ -5,6 +5,8 @@ import { UserMenu } from "@/components/user-menu";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // シェア用カード画像などの URL をこのドメインで作る（本番では Vercel の環境変数に公開URLを入れる）
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
     default: "Campる | キャンプ場の現地コンディションがわかる",
     template: "%s | Campる",

@@ -1,11 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCheckin } from "@/app/checkins/actions";
 
 /** 自分の投稿にだけ出す「編集」「削除」 */
-export function CheckinOwnerActions({ id, campsiteId }: { id: string; campsiteId: string }) {
+export function CheckinOwnerActions({
+  id,
+  campsiteId,
+  afterDeleteHref,
+}: {
+  id: string;
+  campsiteId: string;
+  /** 削除したあとに移るページ（投稿1件のページで削除したときは、そのページがなくなるため） */
+  afterDeleteHref?: string;
+}) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +37,7 @@ export function CheckinOwnerActions({ id, campsiteId }: { id: string; campsiteId
           startTransition(async () => {
             const result = await deleteCheckin({ id, campsiteId });
             if (result.error) setError(result.error);
+            else if (afterDeleteHref) router.push(afterDeleteHref);
           });
         }}
         className="rounded-full border border-red-300 px-3 py-1 text-red-700 hover:bg-red-50 disabled:opacity-50"

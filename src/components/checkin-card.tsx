@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BUG_LEVEL, FIRE_STATUS, GROUND_TYPE, PEG_NEEDED, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
 import { supabaseUrl } from "@/lib/supabase/env";
 
@@ -21,7 +22,10 @@ export function CheckinCard({
     <li className="space-y-3 rounded-lg border border-stone-200 bg-white p-4">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="font-medium">{heading}</span>
-        <time className="shrink-0 text-stone-500">{c.visited_on.replaceAll("-", "/")}</time>
+        {/* 日付から、この投稿1件のページ（シェア用）に移れる */}
+        <Link href={`/checkins/${c.id}`} className="shrink-0 text-stone-500 underline-offset-4 hover:underline">
+          <time>{c.visited_on.replaceAll("-", "/")}</time>
+        </Link>
       </div>
 
       <dl className="grid grid-cols-[5rem_1fr] gap-x-3 gap-y-1.5 text-sm">

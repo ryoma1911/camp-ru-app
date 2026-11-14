@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { signInWithGoogle } from "@/app/auth/actions";
 import { CheckinCard } from "@/components/checkin-card";
 import { CheckinOwnerActions } from "@/components/checkin-owner-actions";
+import { ShareButton } from "@/components/share-button";
 import { getMyProfile } from "@/lib/auth";
+import { shareText } from "@/lib/checkin-share";
 import { getMyCheckins } from "@/lib/my-checkins";
 import { NicknameForm } from "./nickname-form";
 
@@ -66,7 +68,12 @@ async function MyPageContent() {
                     {c.campsites.name}
                   </Link>
                 }
-                actions={<CheckinOwnerActions id={c.id} campsiteId={c.campsite_id} />}
+                actions={
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <ShareButton path={`/checkins/${c.id}`} text={shareText(c, c.campsites.name)} />
+                    <CheckinOwnerActions id={c.id} campsiteId={c.campsite_id} />
+                  </div>
+                }
               />
             ))}
           </ul>
