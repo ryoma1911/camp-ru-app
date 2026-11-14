@@ -61,8 +61,11 @@ export type CheckinSummary = {
   coldest: number | null;
   coldestMonth: number | null;
   topPeg: keyof typeof PEG_NEEDED | null;
+  topGround: keyof typeof GROUND_TYPE | null;
   /** 焚き火をしようとした日のうち、風で控えた割合（%）。しようとした日がなければ null */
   windSkipRate: number | null;
+  /** 月（1〜12）ごとの明け方の最低気温の平均。記録のない月は入らない */
+  monthAvgTemp: Record<number, number>;
 };
 
 /**
@@ -77,10 +80,10 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("checkins")
-    .select("campsite_id, visited_on, min_temp_c, peg_needed, fire_status");
+    .select("campsite_id, visited_on, min_temp_c, ground_type, peg_needed, fire_status");
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
 
-  const groups = new Map<string, Pick<Row, "visited_on" | "min_temp_c" | "peg_needed" | "fire_status">[]>();
+  const groups = new Map<string, Pick<Row, "visited_on" | "min_temp_c" | "ground_type" | "peg_needed" | "fire_status">[]>();
   for (const r of (data ?? []) as (Row & { campsite_id: string })[]) {
     groups.set(r.campsite_id, [...(groups.get(r.campsite_id) ?? []), r]);
   }
@@ -97,7 +100,17 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
         coldestMonth = Number(r.visited_on.slice(5, 7));
       }
     }
+    const monthTemps = new Map<number, number[]>();
+    for (const r of rows) {
+      if (r.min_temp_c == null) continue;
+      const m = Number(r.visited_on.slice(5, 7));
+      monthTemps.set(m, [...(monthTemps.get(m) ?? []), Number(r.min_temp_c)]);
+    }
+    const monthAvgTemp = Object.fromEntries(
+      [...monthTemps].map(([m, ts]) => [m, round1(ts.reduce((a, b) => a + b, 0) / ts.length)]),
+    );
     const peg = breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed))[0];
+    const ground = breakdown(GROUND_TYPE, rows.map((r) => r.ground_type))[0];
     const done = rows.filter((r) => r.fire_status === "done").length;
     const skipped = rows.filter((r) => r.fire_status === "skipped_wind").length;
     result[campsiteId] = {
@@ -105,6 +118,8 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
       coldest,
       coldestMonth,
       topPeg: peg?.count ? peg.key : null,
+      topGround: ground?.count ? ground.key : null,
+      monthAvgTemp,
       windSkipRate: done + skipped ? Math.round((skipped / (done + skipped)) * 100) : null,
     };
   }
