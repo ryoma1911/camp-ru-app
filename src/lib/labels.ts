@@ -6,12 +6,13 @@ export const LOCATION_TYPE = {
   lake: "湖畔",
   highland: "高原",
   sea: "海沿い",
+  meadow: "草原",
 } as const;
 
 export const SITE_STYLE = {
-  auto: "オート",
-  free: "フリー",
-  both: "オート・フリー",
+  sectioned: "区画サイト",
+  free: "フリーサイト",
+  both: "区画・フリー",
 } as const;
 
 export const FIRE_RULE = {

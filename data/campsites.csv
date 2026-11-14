@@ -1,0 +1,7 @@
+slug,name,prefecture,address,lat,lng,location_type,site_style,car_access,has_hot_water,has_shower,has_bath,fire_rule,official_url
+hottarakashi,ほったらかしキャンプ場,山梨県,山梨県山梨市矢坪1669-25,35.7032,138.6575,highland,both,true,true,true,true,stand_required,https://hottarakashicamp.com/
+sweetgrass,北軽井沢スウィートグラス,群馬県,群馬県吾妻郡長野原町北軽井沢1990-579,36.4258,138.6186,highland,sectioned,true,true,true,true,stand_required,https://sweetgrass.jp/
+yumebokujo,成田ゆめ牧場ファミリーオートキャンプ場,千葉県,千葉県成田市名木730-3,35.8569,140.3855,meadow,both,true,true,true,false,stand_required,https://www.yumebokujo.com/camp.html
+snowpeak-hq,スノーピークHeadquartersキャンプフィールド,新潟県,新潟県三条市中野原456,37.5857,139.0347,meadow,free,true,true,true,true,stand_required,https://sbs.snowpeak.co.jp/headquarters/
+wakasu-park,若洲公園キャンプ場,東京都,東京都江東区若洲3-2-1,35.6177,139.8364,sea,sectioned,false,false,true,false,stand_required,https://www.tptc.co.jp/park/03_09/camp
+nagatoro-camp,長瀞オートキャンプ場,埼玉県,埼玉県秩父郡長瀞町大字井戸559-1,36.1041,139.1172,forest,sectioned,true,true,true,false,stand_required,https://www.nagatoro-camp.com/

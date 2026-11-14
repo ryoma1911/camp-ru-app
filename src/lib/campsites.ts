@@ -7,7 +7,8 @@ import type { Campsite } from "@/lib/labels";
 /** キャンプ場一覧（公開データなのでサーバーでキャッシュする） */
 export async function getCampsites(): Promise<Campsite[]> {
   "use cache";
-  cacheLife("hours");
+  // ダッシュボードから CSV を取り込むので、1分ほどで反映されるようにしておく
+  cacheLife("minutes");
   cacheTag("campsites");
 
   if (!isSupabaseConfigured) return [];
