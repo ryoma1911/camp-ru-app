@@ -58,6 +58,7 @@ rows.forEach((cells, i) => {
   if (cells.length !== header.length) err(`列の数が ${cells.length} 個です（${header.length} 個必要）`);
   for (const k of REQUIRED) if (!r[k]) err(`${k} が空です`);
   if (r.slug && !/^[a-z0-9-]+$/.test(r.slug)) err(`slug は英小文字・数字・ハイフンだけにしてください: "${r.slug}"`);
+  if (r.slug === "new") err(`slug "new" は使えません（キャンプ場登録のページの URL と同じになるため）`);
   if (slugs.has(r.slug)) err(`slug "${r.slug}" が重複しています`);
   slugs.add(r.slug);
   for (const [k, allowed] of Object.entries(ENUMS)) {

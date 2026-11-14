@@ -1,4 +1,4 @@
-/** 読み物のページは、トップより狭い幅で読みやすくする（トップは絞り込み欄と2列のため広い） */
-export default function NarrowLayout({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto max-w-3xl">{children}</div>;
+/** 管理画面の幅はページごとに決める（申請の確認は一覧と詳細の2列なので広く、それ以外は狭く） */
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return children;
 }

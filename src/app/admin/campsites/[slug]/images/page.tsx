@@ -20,7 +20,7 @@ type Props = PageProps<"/admin/campsites/[slug]/images">;
 
 export default function AdminImagesPage(props: Props) {
   return (
-    <Suspense fallback={<p className="text-sm text-stone-500">読み込み中…</p>}>
+    <Suspense fallback={<p className="mx-auto max-w-3xl text-sm text-stone-500">読み込み中…</p>}>
       <AdminImagesContent params={props.params} />
     </Suspense>
   );
@@ -54,7 +54,7 @@ async function AdminImagesContent({ params }: Pick<Props, "params">) {
   const room = MAX_CAMPSITE_IMAGES - images.length;
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8">
       <div>
         <Link href="/admin" className="text-sm text-emerald-700 underline">
           ← 管理

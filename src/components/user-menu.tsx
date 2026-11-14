@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { signInWithGoogle, signOut } from "@/app/auth/actions";
+import { signInWithGoogle } from "@/app/auth/actions";
+import { AccountMenu } from "@/components/account-menu";
 import { isAdmin } from "@/lib/admin";
 import { getMyProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -19,17 +19,5 @@ export async function UserMenu() {
     );
   }
 
-  return (
-    <form action={signOut} className="flex items-center gap-3 text-sm">
-      {admin && (
-        <Link href="/admin" className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 hover:bg-amber-200">
-          管理
-        </Link>
-      )}
-      <Link href="/me" className="max-w-[10rem] truncate text-stone-700 underline-offset-4 hover:underline">
-        {profile.display_name}
-      </Link>
-      <button className="rounded-full border border-stone-300 px-3 py-1.5 hover:bg-stone-100">ログアウト</button>
-    </form>
-  );
+  return <AccountMenu name={profile.display_name} admin={admin} />;
 }
