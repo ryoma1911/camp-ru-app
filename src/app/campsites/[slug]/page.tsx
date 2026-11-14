@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Tag } from "@/components/tag";
 import { getCampsite, getCampsites, getRecentCheckins } from "@/lib/campsites";
+import { CampsiteStats } from "@/components/campsite-stats";
 import { CheckinCard } from "@/components/checkin-card";
 import { CheckinOwnerActions } from "@/components/checkin-owner-actions";
 import { getCurrentUserId } from "@/lib/auth";
+import { getCampsiteStats } from "@/lib/campsite-stats";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 
 export async function generateStaticParams() {
@@ -81,6 +83,10 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
         </Link>
       </section>
 
+      <Suspense fallback={<p className="text-sm text-stone-500">集計中…</p>}>
+        <StatsSection campsiteId={campsite.id} />
+      </Suspense>
+
       <section className="space-y-3">
         <h2 className="text-lg font-bold">みんなのキャン活</h2>
         <Suspense fallback={<p className="text-sm text-stone-500">読み込み中…</p>}>
@@ -122,4 +128,9 @@ async function CheckinList({ campsiteId }: { campsiteId: string }) {
       ))}
     </ul>
   );
+}
+
+async function StatsSection({ campsiteId }: { campsiteId: string }) {
+  const stats = await getCampsiteStats(campsiteId);
+  return <CampsiteStats stats={stats} />;
 }
