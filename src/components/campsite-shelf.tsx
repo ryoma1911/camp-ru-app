@@ -13,6 +13,7 @@ const TYPE_STYLE: Record<keyof typeof LOCATION_TYPE, string> = {
   highland: "bg-lime-100 text-lime-900",
   sea: "bg-blue-100 text-blue-900",
   meadow: "bg-green-100 text-green-900",
+  view: "bg-indigo-100 text-indigo-900",
 };
 
 const PEG_SHORT = { plastic: "プラペグ", steel: "スチール", forged: "鍛造", rocky: "石が多い" } as const;

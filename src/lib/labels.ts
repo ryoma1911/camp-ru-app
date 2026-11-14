@@ -7,6 +7,7 @@ export const LOCATION_TYPE = {
   highland: "高原",
   sea: "海沿い",
   meadow: "草原",
+  view: "展望",
 } as const;
 
 export const SITE_STYLE = {

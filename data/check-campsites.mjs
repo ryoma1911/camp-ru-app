@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 
 const ENUMS = {
-  location_type: ["forest", "river", "lake", "highland", "sea", "meadow"],
+  location_type: ["forest", "river", "lake", "highland", "sea", "meadow", "view"],
   site_style: ["sectioned", "free", "both"],
   fire_rule: ["open_fire_ok", "stand_required", "prohibited"],
 };
