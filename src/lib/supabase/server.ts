@@ -2,6 +2,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { supabaseKey, supabaseUrl } from "./env";
 
 /**
@@ -9,6 +10,8 @@ import { supabaseKey, supabaseUrl } from "./env";
  * cookies() を読むので、使うコンポーネントは <Suspense> の内側に置くこと。
  */
 export async function createSupabaseServerClient() {
+  // Supabase はセッションの期限チェックで現在時刻を使うため、リクエスト時にだけ動かす
+  await connection();
   const cookieStore = await cookies();
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {

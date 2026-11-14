@@ -48,12 +48,20 @@ export const SLEEP_QUALITY = {
   sleepless: "眠れなかった",
 } as const;
 
+export const BUG_LEVEL = {
+  1: "虫は少ない",
+  2: "虫はふつう",
+  3: "虫が多い",
+} as const;
+
 export type Campsite = {
   id: string;
   slug: string;
   name: string;
   prefecture: string;
   address: string;
+  lat: number | null;
+  lng: number | null;
   location_type: keyof typeof LOCATION_TYPE;
   site_style: keyof typeof SITE_STYLE;
   car_access: boolean;
@@ -62,4 +70,24 @@ export type Campsite = {
   has_bath: boolean;
   fire_rule: keyof typeof FIRE_RULE;
   official_url: string | null;
+};
+
+export type Checkin = {
+  id: string;
+  visited_on: string;
+  min_temp_c: number | null;
+  temp_measured: boolean;
+  temp_at_dawn: boolean;
+  sleeping_bag_comfort_c: number | null;
+  sleep_quality: keyof typeof SLEEP_QUALITY | null;
+  ground_type: keyof typeof GROUND_TYPE;
+  peg_needed: keyof typeof PEG_NEEDED;
+  fire_status: keyof typeof FIRE_STATUS;
+  bug_level: keyof typeof BUG_LEVEL | null;
+  car_access_ok: boolean | null;
+  hot_water_ok: boolean | null;
+  comment: string | null;
+  created_at: string;
+  profiles: { display_name: string; avatar_url: string | null } | null;
+  checkin_photos: { storage_path: string; sort_order: number }[];
 };

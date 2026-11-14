@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Tag } from "@/components/tag";
 import { getCampsites } from "@/lib/campsites";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -23,7 +25,8 @@ export default async function Home() {
       ) : (
         <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
           {campsites.map((c) => (
-            <li key={c.id} className="p-4">
+            <li key={c.id}>
+              <Link href={`/campsites/${c.slug}`} className="block p-4 hover:bg-stone-50">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-semibold">{c.name}</h2>
                 <span className="shrink-0 text-xs text-stone-500">{c.prefecture}</span>
@@ -37,16 +40,13 @@ export default async function Home() {
                 {c.has_shower && <Tag>シャワー</Tag>}
                 {c.has_bath && <Tag>風呂</Tag>}
               </div>
+              </Link>
             </li>
           ))}
         </ul>
       )}
     </div>
   );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="rounded bg-stone-100 px-2 py-0.5 text-stone-700">{children}</span>;
 }
 
 function SetupNotice() {
