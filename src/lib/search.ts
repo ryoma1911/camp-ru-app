@@ -1,12 +1,15 @@
 // 「条件で探す」：URL の条件を読み取り、キャンプ場の一覧を絞り込む。
-// キャンプ場は多くても数百件なので、キャッシュ済みの一覧と集計をアプリ側で絞り込む（DBに毎回問い合わせない）
+// キャンプ場は多くても数百件なので、キャッシュ済みの一覧と集計をアプリ側で絞り込む（DBに毎回問い合わせない）。
+// ブラウザでも件数を数えるため、このファイルはサーバー専用にしない
 import type { CheckinSummary } from "@/lib/campsite-stats";
-import { FIRE_RULE, GROUND_TYPE, LOCATION_TYPE, PEG_NEEDED, SITE_STYLE, type Campsite } from "@/lib/labels";
+import { GROUND_TYPE, LOCATION_TYPE, PEG_NEEDED, SITE_STYLE, type Campsite } from "@/lib/labels";
 
 export const TEMP_OPTIONS = [-10, -5, 0, 5] as const;
 export const WIND_MAX_RATE = 20; // 「風で控えた日が少ない」とみなす上限（%）
 
 export type SortKey = "posts" | "warm" | "pref";
+/** どの探し方（タブ）から来たか */
+export type SearchTab = "keyword" | "pref" | "feature";
 
 /** 都道府県コード順（北から南）。漢字の並べ替えは読み順にならないため、この順で並べる */
 export const PREFECTURES = [
@@ -17,96 +20,124 @@ export const PREFECTURES = [
   "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県",
 ] as const;
 
+export const REGIONS: { name: string; prefs: string[] }[] = [
+  { name: "北海道・東北", prefs: ["北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"] },
+  { name: "関東", prefs: ["茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県"] },
+  { name: "甲信越", prefs: ["新潟県", "山梨県", "長野県"] },
+  { name: "北陸", prefs: ["富山県", "石川県", "福井県"] },
+  { name: "東海", prefs: ["岐阜県", "静岡県", "愛知県", "三重県"] },
+  { name: "近畿", prefs: ["滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県"] },
+  { name: "中国", prefs: ["鳥取県", "島根県", "岡山県", "広島県", "山口県"] },
+  { name: "四国", prefs: ["徳島県", "香川県", "愛媛県", "高知県"] },
+  { name: "九州・沖縄", prefs: ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"] },
+];
+
 const prefIndex = (p: string) => {
   const i = (PREFECTURES as readonly string[]).indexOf(p);
   return i === -1 ? PREFECTURES.length : i;
 };
 export const byPrefecture = (a: string, b: string) => prefIndex(a) - prefIndex(b);
 
+/** 設備（公式の情報）。複数選んだら「すべて満たす」 */
+export const FACILITIES = {
+  car: "車乗り入れ可",
+  hotwater: "炊事場お湯",
+  shower: "シャワー",
+  bath: "風呂",
+  fire: "焚き火OK",
+  openfire: "直火OK",
+} as const;
+export type Facility = keyof typeof FACILITIES;
+
+/** 現地のリアル（キャン活の集計）。複数選んだら「すべて満たす」 */
+export const REALS = {
+  plastic: "プラペグでOK",
+  steel: "スチールまででOK",
+  wind: `風で焚き火を控えた日が少ない（${WIND_MAX_RATE}%以下）`,
+} as const;
+export type Real = keyof typeof REALS;
+
 export type Filters = {
+  tab: SearchTab | null;
   q: string;
-  pref: string;
-  types: (keyof typeof LOCATION_TYPE)[];
-  site: "sectioned" | "free" | "";
-  car: boolean;
-  hotwater: boolean;
-  shower: boolean;
-  bath: boolean;
-  fire: "open" | "ok" | "";
-  // ここから下はキャン活の集計にもとづく条件
+  prefs: string[]; // どれか
+  types: (keyof typeof LOCATION_TYPE)[]; // どれか
+  sites: ("sectioned" | "free")[]; // どれか
+  facilities: Facility[]; // すべて
+  reals: Real[]; // すべて
+  grounds: (keyof typeof GROUND_TYPE)[]; // どれか
   month: number | null;
   minTemp: number | null;
-  peg: "plastic" | "steel" | "";
-  wind: boolean;
-  grounds: (keyof typeof GROUND_TYPE)[];
   sort: SortKey;
   nodata: boolean; // 集計がなく判定できないキャンプ場も表示する
+};
+
+export const EMPTY_FILTERS: Filters = {
+  tab: null, q: "", prefs: [], types: [], sites: [], facilities: [], reals: [], grounds: [],
+  month: null, minTemp: null, sort: "posts", nodata: false,
 };
 
 type Params = Record<string, string | string[] | undefined>;
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const many = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? [v] : []);
-const keysOf = <T extends Record<string, unknown>>(labels: T, values: string[]) =>
-  values.filter((v): v is keyof T & string => v in labels);
+const pickAll = <K extends string>(allowed: readonly K[] | Record<K, unknown>, values: string[]) => {
+  const keys = (Array.isArray(allowed) ? allowed : Object.keys(allowed)) as string[];
+  return [...new Set(values.filter((v): v is K => keys.includes(v)))];
+};
 
 export function parseFilters(params: Params): Filters {
   const month = Number(one(params.month));
-  const minTemp = Number(one(params.minTemp));
+  const minTemp = one(params.minTemp);
   const sort = one(params.sort);
-  const site = one(params.site);
-  const fire = one(params.fire);
-  const peg = one(params.peg);
+  const tab = one(params.tab);
   return {
+    tab: tab === "keyword" || tab === "pref" || tab === "feature" ? tab : null,
     q: one(params.q).trim().slice(0, 50),
-    pref: one(params.pref),
-    types: keysOf(LOCATION_TYPE, many(params.type)),
-    site: site === "sectioned" || site === "free" ? site : "",
-    car: one(params.car) === "1",
-    hotwater: one(params.hotwater) === "1",
-    shower: one(params.shower) === "1",
-    bath: one(params.bath) === "1",
-    fire: fire === "open" || fire === "ok" ? fire : "",
+    prefs: pickAll(PREFECTURES as readonly string[], many(params.pref)).sort(byPrefecture),
+    types: pickAll(LOCATION_TYPE, many(params.type)),
+    sites: pickAll(["sectioned", "free"] as const, many(params.site)),
+    facilities: pickAll(FACILITIES, many(params.fac)),
+    reals: pickAll(REALS, many(params.real)),
+    grounds: pickAll(GROUND_TYPE, many(params.ground)),
     month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : null,
-    minTemp: (TEMP_OPTIONS as readonly number[]).includes(minTemp) && one(params.minTemp) !== "" ? minTemp : null,
-    peg: peg === "plastic" || peg === "steel" ? peg : "",
-    wind: one(params.wind) === "1",
-    grounds: keysOf(GROUND_TYPE, many(params.ground)),
+    minTemp: minTemp !== "" && (TEMP_OPTIONS as readonly number[]).includes(Number(minTemp)) ? Number(minTemp) : null,
     sort: sort === "warm" || sort === "pref" ? sort : "posts",
     nodata: one(params.nodata) === "1",
   };
 }
 
-/** 条件を URL のクエリにする（空の条件は入れない） */
+/** 条件を URL にする（空の条件は入れない） */
 export function toQuery(f: Partial<Filters>): string {
   const p = new URLSearchParams();
+  if (f.tab) p.set("tab", f.tab);
   if (f.q) p.set("q", f.q);
-  if (f.pref) p.set("pref", f.pref);
-  f.types?.forEach((t) => p.append("type", t));
-  if (f.site) p.set("site", f.site);
-  if (f.car) p.set("car", "1");
-  if (f.hotwater) p.set("hotwater", "1");
-  if (f.shower) p.set("shower", "1");
-  if (f.bath) p.set("bath", "1");
-  if (f.fire) p.set("fire", f.fire);
+  f.prefs?.forEach((v) => p.append("pref", v));
+  f.types?.forEach((v) => p.append("type", v));
+  f.sites?.forEach((v) => p.append("site", v));
+  f.facilities?.forEach((v) => p.append("fac", v));
+  f.reals?.forEach((v) => p.append("real", v));
+  f.grounds?.forEach((v) => p.append("ground", v));
   if (f.month) p.set("month", String(f.month));
   if (f.minTemp != null) p.set("minTemp", String(f.minTemp));
-  if (f.peg) p.set("peg", f.peg);
-  if (f.wind) p.set("wind", "1");
-  f.grounds?.forEach((g) => p.append("ground", g));
   if (f.sort && f.sort !== "posts") p.set("sort", f.sort);
   if (f.nodata) p.set("nodata", "1");
   const s = p.toString();
   return s ? `/?${s}` : "/";
 }
 
+/** 検索結果の画面を出すか（何か条件があるか、タブから検索したか） */
+export const hasConditions = (f: Filters) => toQuery({ ...f, sort: "posts", nodata: false }) !== "/";
+
+/** 配列の値を付け外しする */
+export const toggle = <T,>(list: T[], value: T) =>
+  list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+
 /* ---------- 条件ごとの判定 ---------- */
 
 type Check = {
   id: string;
   label: string;
-  /** キャン活の集計にもとづく条件か（集計がないと判定できない） */
-  needsData: boolean;
   /** true=合う / false=合わない / null=データがなく判定できない */
   test: (c: Campsite, s: CheckinSummary | undefined) => boolean | null;
   /** この条件だけ外したときの条件 */
@@ -115,62 +146,64 @@ type Check = {
 
 function checksFor(f: Filters): Check[] {
   const checks: Check[] = [];
-  const add = (c: Check) => checks.push(c);
 
   if (f.q) {
-    add({
+    const q = f.q.toLowerCase();
+    checks.push({
       id: "q",
       label: `「${f.q}」`,
-      needsData: false,
-      test: (c) => c.name.toLowerCase().includes(f.q.toLowerCase()),
+      // 名前だけでなく、都道府県・住所でもヒットさせる（「富士」「山梨」などエリアでも探せる）
+      test: (c) => [c.name, c.prefecture, c.address].some((v) => v.toLowerCase().includes(q)),
       without: (x) => ({ ...x, q: "" }),
     });
   }
-  if (f.pref) {
-    add({ id: "pref", label: f.pref, needsData: false, test: (c) => c.prefecture === f.pref, without: (x) => ({ ...x, pref: "" }) });
+  if (f.prefs.length) {
+    checks.push({
+      id: "pref",
+      label: f.prefs.join("・"),
+      test: (c) => f.prefs.includes(c.prefecture),
+      without: (x) => ({ ...x, prefs: [] }),
+    });
   }
   if (f.types.length) {
-    add({
+    checks.push({
       id: "type",
       label: f.types.map((t) => LOCATION_TYPE[t]).join("・"),
-      needsData: false,
       test: (c) => f.types.includes(c.location_type),
       without: (x) => ({ ...x, types: [] }),
     });
   }
-  if (f.site) {
-    add({
+  if (f.sites.length) {
+    checks.push({
       id: "site",
-      label: SITE_STYLE[f.site],
-      needsData: false,
-      test: (c) => c.site_style === f.site || c.site_style === "both",
-      without: (x) => ({ ...x, site: "" }),
+      label: f.sites.map((s) => SITE_STYLE[s]).join("・"),
+      test: (c) => c.site_style === "both" || f.sites.includes(c.site_style),
+      without: (x) => ({ ...x, sites: [] }),
     });
   }
-  const bool = (key: "car" | "hotwater" | "shower" | "bath", label: string, field: keyof Campsite) => {
-    if (f[key]) add({ id: key, label, needsData: false, test: (c) => Boolean(c[field]), without: (x) => ({ ...x, [key]: false }) });
+  const facilityTest: Record<Facility, (c: Campsite) => boolean> = {
+    car: (c) => c.car_access,
+    hotwater: (c) => c.has_hot_water,
+    shower: (c) => c.has_shower,
+    bath: (c) => c.has_bath,
+    fire: (c) => c.fire_rule !== "prohibited",
+    openfire: (c) => c.fire_rule === "open_fire_ok",
   };
-  bool("car", "車乗り入れ可", "car_access");
-  bool("hotwater", "炊事場お湯", "has_hot_water");
-  bool("shower", "シャワー", "has_shower");
-  bool("bath", "風呂", "has_bath");
-  if (f.fire) {
-    add({
-      id: "fire",
-      label: f.fire === "open" ? FIRE_RULE.open_fire_ok : "焚き火OK",
-      needsData: false,
-      test: (c) => (f.fire === "open" ? c.fire_rule === "open_fire_ok" : c.fire_rule !== "prohibited"),
-      without: (x) => ({ ...x, fire: "" }),
+  for (const fac of f.facilities) {
+    checks.push({
+      id: `fac-${fac}`,
+      label: FACILITIES[fac],
+      test: (c) => facilityTest[fac](c),
+      without: (x) => ({ ...x, facilities: x.facilities.filter((v) => v !== fac) }),
     });
   }
 
   if (f.month && f.minTemp != null) {
     const month = f.month;
     const min = f.minTemp;
-    add({
+    checks.push({
       id: "temp",
       label: `${month}月の最低気温 ${min}℃以上`,
-      needsData: true,
       test: (_c, s) => {
         const t = s?.monthAvgTemp[month];
         return t == null ? null : t >= min;
@@ -178,30 +211,25 @@ function checksFor(f: Filters): Check[] {
       without: (x) => ({ ...x, minTemp: null }),
     });
   }
-  if (f.peg) {
-    const ok: (keyof typeof PEG_NEEDED)[] = f.peg === "plastic" ? ["plastic"] : ["plastic", "steel"];
-    add({
-      id: "peg",
-      label: f.peg === "plastic" ? "プラペグでOK" : "スチールまででOK",
-      needsData: true,
-      test: (_c, s) => (s?.topPeg ? ok.includes(s.topPeg) : null),
-      without: (x) => ({ ...x, peg: "" }),
-    });
-  }
-  if (f.wind) {
-    add({
-      id: "wind",
-      label: `風で焚き火を控えた日 ${WIND_MAX_RATE}%以下`,
-      needsData: true,
-      test: (_c, s) => (s?.windSkipRate == null ? null : s.windSkipRate <= WIND_MAX_RATE),
-      without: (x) => ({ ...x, wind: false }),
+  const pegOk: Record<"plastic" | "steel", (keyof typeof PEG_NEEDED)[]> = {
+    plastic: ["plastic"],
+    steel: ["plastic", "steel"],
+  };
+  for (const real of f.reals) {
+    checks.push({
+      id: `real-${real}`,
+      label: real === "wind" ? `風で焚き火控え ${WIND_MAX_RATE}%以下` : REALS[real],
+      test: (_c, s) => {
+        if (real === "wind") return s?.windSkipRate == null ? null : s.windSkipRate <= WIND_MAX_RATE;
+        return s?.topPeg ? pegOk[real].includes(s.topPeg) : null;
+      },
+      without: (x) => ({ ...x, reals: x.reals.filter((v) => v !== real) }),
     });
   }
   if (f.grounds.length) {
-    add({
+    checks.push({
       id: "ground",
       label: `地面：${f.grounds.map((g) => GROUND_TYPE[g]).join("・")}`,
-      needsData: true,
       test: (_c, s) => (s?.topGround ? f.grounds.includes(s.topGround) : null),
       without: (x) => ({ ...x, grounds: [] }),
     });
@@ -231,6 +259,10 @@ function run(campsites: Campsite[], summaries: Record<string, CheckinSummary>, f
   return { checks, matched, noData };
 }
 
+/** その条件で何件見つかるか（絞り込み欄の件数表示に使う） */
+export const countMatches = (campsites: Campsite[], summaries: Record<string, CheckinSummary>, f: Filters) =>
+  run(campsites, summaries, f).matched.length;
+
 export function searchCampsites(
   campsites: Campsite[],
   summaries: Record<string, CheckinSummary>,
@@ -249,7 +281,7 @@ export function searchCampsites(
   if (sorted.length === 0) {
     for (const ch of checks) {
       const next = ch.without(f);
-      const count = run(campsites, summaries, next).matched.length;
+      const count = countMatches(campsites, summaries, next);
       if (count > 0 && (!suggestion || count > suggestion.count)) {
         suggestion = { label: ch.label, href: toQuery(next), count };
       }

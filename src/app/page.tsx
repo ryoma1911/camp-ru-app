@@ -1,30 +1,23 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { FilterPanel } from "@/components/search/filter-panel";
+import { HeroSearch } from "@/components/search/hero-search";
+import { RefinePanel } from "@/components/search/refine-panel";
 import { Tag } from "@/components/tag";
 import { getCheckinSummaries, type CheckinSummary } from "@/lib/campsite-stats";
 import { getCampsites } from "@/lib/campsites";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Campsite } from "@/lib/labels";
-import { byPrefecture, parseFilters, searchCampsites, toQuery, type Filters, type SortKey } from "@/lib/search";
+import { hasConditions, parseFilters, searchCampsites, toQuery, type Filters, type SortKey } from "@/lib/search";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 type Props = PageProps<"/">;
 
 export default function Home(props: Props) {
   if (!isSupabaseConfigured) return <SetupNotice />;
+  // 条件は URL から読むので <Suspense> の内側に置く（Next.js 16 の即時ナビゲーションのため）
   return (
-    <div className="space-y-5">
-      <section>
-        <h1 className="text-2xl font-bold">キャンプ場をさがす</h1>
-        <p className="mt-1 text-sm text-stone-600">
-          行った人の投稿でわかる、明け方の気温・地面とペグ・焚き火のリアル。
-        </p>
-      </section>
-      {/* 条件は URL から読むので <Suspense> の内側に置く（Next.js 16 の即時ナビゲーションのため） */}
-      <Suspense fallback={<p className="text-sm text-stone-500">読み込み中…</p>}>
-        <SearchSection searchParams={props.searchParams} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div className="h-64 rounded-2xl bg-emerald-800" />}>
+      <SearchSection searchParams={props.searchParams} />
+    </Suspense>
   );
 }
 
@@ -32,7 +25,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
   const [params, campsites, summaries] = await Promise.all([searchParams, getCampsites(), getCheckinSummaries()]);
   const filters = parseFilters(params);
   const result = searchCampsites(campsites, summaries, filters);
-  const prefectures = [...new Set(campsites.map((c) => c.prefecture))].sort(byPrefecture);
+  const searched = hasConditions(filters);
 
   if (campsites.length === 0) {
     return (
@@ -43,95 +36,77 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
   }
 
   return (
-    <div className="space-y-4">
-      <QuickFilters filters={filters} />
-      <FilterPanel filters={filters} prefectures={prefectures} />
+    <div className="space-y-5">
+      {/* key：検索するたびに検索エリアを閉じた状態に戻す */}
+      <HeroSearch
+        key={toQuery(filters)}
+        campsites={campsites}
+        summaries={summaries}
+        currentTab={filters.tab}
+        compact={searched}
+      />
 
-      {result.active.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {result.active.map((a) => (
-            <Link
-              key={a.id}
-              href={a.href}
-              className="inline-flex items-center gap-1 rounded-full bg-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-300"
-              aria-label={`条件「${a.label}」を外す`}
-            >
-              {a.label} <span aria-hidden>✕</span>
-            </Link>
-          ))}
-          <Link href="/" className="text-xs text-emerald-700 underline">
-            すべて解除
-          </Link>
-        </div>
-      )}
+      <div className="grid gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <RefinePanel campsites={campsites} summaries={summaries} filters={filters} active={result.active} />
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm">
-          <span className="text-lg font-bold">{result.matched.length}</span>件のキャンプ場
-        </p>
-        <SortLinks filters={filters} />
-      </div>
+        <div className="min-w-0 space-y-4">
+          {/* スマホでは、選んでいる条件を結果の上に並べる（PC は左の絞り込み欄に出す） */}
+          {result.active.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 lg:hidden">
+              {result.active.map((a) => (
+                <Link
+                  key={a.id}
+                  href={a.href}
+                  scroll={false}
+                  className="inline-flex items-center gap-1 rounded-full bg-stone-200 px-3 py-1 text-xs text-stone-800"
+                  aria-label={`条件「${a.label}」を外す`}
+                >
+                  {a.label} <span aria-hidden>✕</span>
+                </Link>
+              ))}
+            </div>
+          )}
 
-      {result.matched.length === 0 ? (
-        <div className="space-y-2 rounded-lg border border-dashed border-stone-300 p-6 text-sm text-stone-600">
-          <p>条件に合うキャンプ場がありません。</p>
-          {result.suggestion && (
-            <p>
-              <Link href={result.suggestion.href} className="text-emerald-700 underline">
-                「{result.suggestion.label}」を外す
-              </Link>
-              と{result.suggestion.count}件見つかります。
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm">
+              <span className="text-lg font-bold">{result.matched.length}</span>件のキャンプ場
             </p>
+            <SortLinks filters={filters} />
+          </div>
+
+          {result.matched.length === 0 ? (
+            <div className="space-y-2 rounded-lg border border-dashed border-stone-300 p-6 text-sm text-stone-600">
+              <p>条件に合うキャンプ場がありません。</p>
+              {result.suggestion && (
+                <p>
+                  <Link href={result.suggestion.href} className="text-emerald-700 underline">
+                    「{result.suggestion.label}」を外す
+                  </Link>
+                  と{result.suggestion.count}件見つかります。
+                </p>
+              )}
+            </div>
+          ) : (
+            <CampsiteList campsites={result.matched} summaries={summaries} month={filters.month} />
+          )}
+
+          {result.noData.length > 0 && (
+            <div className="space-y-3 rounded-lg bg-stone-100 p-4 text-sm text-stone-600">
+              <p>
+                キャン活のデータがなく、判定できないキャンプ場：<span className="font-bold">{result.noData.length}件</span>
+                <Link
+                  href={toQuery({ ...filters, nodata: !filters.nodata })}
+                  className="ml-2 text-emerald-700 underline"
+                  scroll={false}
+                >
+                  {filters.nodata ? "隠す" : "表示する"}
+                </Link>
+              </p>
+              {filters.nodata && <CampsiteList campsites={result.noData} summaries={summaries} month={filters.month} />}
+            </div>
           )}
         </div>
-      ) : (
-        <CampsiteList campsites={result.matched} summaries={summaries} month={filters.month} />
-      )}
-
-      {result.noData.length > 0 && (
-        <div className="space-y-3 rounded-lg bg-stone-100 p-4 text-sm text-stone-600">
-          <p>
-            キャン活のデータがなく、判定できないキャンプ場：<span className="font-bold">{result.noData.length}件</span>
-            <Link
-              href={toQuery({ ...filters, nodata: !filters.nodata })}
-              className="ml-2 text-emerald-700 underline"
-              scroll={false}
-            >
-              {filters.nodata ? "隠す" : "表示する"}
-            </Link>
-          </p>
-          {filters.nodata && <CampsiteList campsites={result.noData} summaries={summaries} month={filters.month} />}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** よく使う条件。1タップでオン／オフする */
-function QuickFilters({ filters }: { filters: Filters }) {
-  const chips: { label: string; on: boolean; toggle: Partial<Filters> }[] = [
-    { label: "車乗り入れ可", on: filters.car, toggle: { car: !filters.car } },
-    { label: "炊事場お湯", on: filters.hotwater, toggle: { hotwater: !filters.hotwater } },
-    { label: "焚き火OK", on: filters.fire === "ok", toggle: { fire: filters.fire === "ok" ? "" : "ok" } },
-    { label: "プラペグでOK", on: filters.peg === "plastic", toggle: { peg: filters.peg === "plastic" ? "" : "plastic" } },
-  ];
-  return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-      {chips.map((c) => (
-        <Link
-          key={c.label}
-          href={toQuery({ ...filters, ...c.toggle })}
-          scroll={false}
-          aria-pressed={c.on}
-          className={`inline-flex h-9 shrink-0 items-center rounded-full border px-4 text-sm ${
-            c.on
-              ? "border-emerald-700 bg-emerald-700 text-white"
-              : "border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
-          }`}
-        >
-          {c.label}
-        </Link>
-      ))}
+      </div>
     </div>
   );
 }
@@ -139,14 +114,14 @@ function QuickFilters({ filters }: { filters: Filters }) {
 function SortLinks({ filters }: { filters: Filters }) {
   const options: { key: SortKey; label: string; disabled?: boolean }[] = [
     { key: "posts", label: "キャン活が多い順" },
-    { key: "warm", label: filters.month ? `${filters.month}月に暖かい順` : "暖かい順（月を選ぶと使えます）", disabled: !filters.month },
+    { key: "warm", label: filters.month ? `${filters.month}月に暖かい順` : "暖かい順", disabled: !filters.month },
     { key: "pref", label: "都道府県順" },
   ];
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
       {options.map((o) =>
         o.disabled ? (
-          <span key={o.key} className="text-stone-300">
+          <span key={o.key} className="text-stone-300" title="絞り込みで「行く月」を選ぶと使えます">
             {o.label}
           </span>
         ) : (

@@ -18,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ja" className="h-full antialiased">
       <body className="flex min-h-full flex-col bg-stone-50 text-stone-900">
         <header className="border-b border-stone-200 bg-white">
-          <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+          <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
             <Link href="/" className="text-lg font-bold tracking-tight text-emerald-800">
               Campる
             </Link>
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
       </body>
     </html>
   );
