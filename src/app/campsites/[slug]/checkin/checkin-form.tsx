@@ -38,6 +38,7 @@ export function CheckinForm({ action, userId, initial, submitLabel = "キャン�
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, { error: null });
   const [uploading, setUploading] = useState(false);
+  const [photoCount, setPhotoCount] = useState(initial?.checkin_photos.length ?? 0);
   const [dirty, setDirty] = useState(false);
   const [today] = useState(todayInJapan);
 
@@ -165,7 +166,29 @@ export function CheckinForm({ action, userId, initial, submitLabel = "キャン�
           />
         </Field>
         <Field label="写真（4枚まで）">
-          <PhotoPicker userId={userId} initialPaths={initialPhotos} onUploadingChange={setUploading} />
+          <PhotoPicker
+            userId={userId}
+            initialPaths={initialPhotos}
+            onUploadingChange={setUploading}
+            onCountChange={setPhotoCount}
+          />
+          {photoCount > 0 && (
+            <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg bg-stone-50 p-3 text-sm">
+              <input
+                type="checkbox"
+                name="photo_reuse_ok"
+                value="yes"
+                defaultChecked={initial?.photo_reuse_ok ?? false}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-700"
+              />
+              <span>
+                この写真をキャンプ場の紹介写真に使ってよい
+                <span className="block text-xs text-stone-500">
+                  運営が選んだ写真だけ、ニックネーム付きでキャンプ場ページの上部に載ります。チェックを外すか投稿を消すと、紹介写真からも外れます。
+                </span>
+              </span>
+            </label>
+          )}
         </Field>
       </Section>
 

@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Tag } from "@/components/tag";
 import { getCampsite, getCampsites, getRecentCheckins } from "@/lib/campsites";
+import { CampsiteGallery } from "@/components/campsite-gallery";
 import { CampsiteStats } from "@/components/campsite-stats";
 import { CheckinCard } from "@/components/checkin-card";
 import { CheckinOwnerActions } from "@/components/checkin-owner-actions";
 import { getCurrentUserId } from "@/lib/auth";
+import { getCampsiteImages } from "@/lib/campsite-images";
 import { getCampsiteStats } from "@/lib/campsite-stats";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 
@@ -36,6 +38,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
   const { slug } = await params;
   const campsite = await getCampsite(slug);
   if (!campsite) notFound();
+  const images = await getCampsiteImages(campsite.id);
 
   const mapUrl =
     campsite.lat != null && campsite.lng != null
@@ -47,6 +50,8 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
       <Suspense>
         <PostedNotice searchParams={searchParams} />
       </Suspense>
+
+      <CampsiteGallery images={images} name={campsite.name} slug={campsite.slug} />
 
       <section className="space-y-3">
         <p className="text-sm text-stone-500">{campsite.prefecture}</p>

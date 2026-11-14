@@ -1,54 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { compress } from "@/lib/image-compress";
 import { createSupabaseBrowserClient, photoPublicUrl } from "@/lib/supabase/client";
 
 const MAX_PHOTOS = 4;
-const MAX_EDGE = 1600; // 長辺のピクセル数
-const JPEG_QUALITY = 0.8;
 
 type Photo = { key: string; preview: string; path: string | null; failed: boolean };
-
-const looksLikeHeic = (file: File) =>
-  /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
-
-/**
- * 写真を読み込む。まずブラウザ自身に任せ（Safari は HEIC も読める）、
- * 読めなかった HEIC だけ変換ライブラリを使う。ライブラリは大きいので、必要なときだけ読み込む
- */
-async function decode(file: File): Promise<ImageBitmap> {
-  try {
-    return await createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch (nativeError) {
-    const { heicTo, isHeic } = await import("heic-to");
-    if (!looksLikeHeic(file) && !(await isHeic(file))) throw nativeError;
-    return heicTo({ blob: file, type: "bitmap" });
-  }
-}
-
-/** 選んだ写真をブラウザで縮小して JPEG にしてから Supabase Storage に直接アップロードする */
-async function compress(file: File): Promise<Blob> {
-  const bitmap = await decode(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("圧縮に失敗しました"))), "image/jpeg", JPEG_QUALITY),
-  );
-}
 
 export function PhotoPicker({
   userId,
   initialPaths = [],
   onUploadingChange,
+  onCountChange,
 }: {
   userId: string;
   /** 編集時にすでに付いている写真 */
   initialPaths?: string[];
   onUploadingChange: (uploading: boolean) => void;
+  /** 付いている写真の枚数（許可のチェック欄を出すかどうかに使う） */
+  onCountChange?: (count: number) => void;
 }) {
   const [photos, setPhotos] = useState<Photo[]>(() =>
     initialPaths.map((path) => ({ key: path, preview: photoPublicUrl(path), path, failed: false })),
@@ -56,6 +27,7 @@ export function PhotoPicker({
   const uploading = photos.some((p) => !p.path && !p.failed);
 
   useEffect(() => onUploadingChange(uploading), [uploading, onUploadingChange]);
+  useEffect(() => onCountChange?.(photos.length), [photos.length, onCountChange]);
 
   async function handleFiles(files: FileList | null) {
     if (!files) return;

@@ -20,6 +20,7 @@ export type CheckinFields = {
   car_access_ok: boolean | null;
   hot_water_ok: boolean | null;
   comment: string | null;
+  photo_reuse_ok: boolean;
 };
 
 function pick<T extends Record<string, unknown>>(labels: T, value: FormDataEntryValue | null) {
@@ -90,6 +91,8 @@ export function parseCheckinForm(
       car_access_ok: triState(formData.get("car_access_ok")),
       hot_water_ok: triState(formData.get("hot_water_ok")),
       comment: comment || null,
+      // 写真がない投稿は許可しても意味がないので false にする
+      photo_reuse_ok: formData.get("photo_reuse_ok") === "yes" && photoPaths.length > 0,
     },
   };
 }

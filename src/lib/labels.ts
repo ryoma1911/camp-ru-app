@@ -93,6 +93,8 @@ export type Checkin = {
   car_access_ok: boolean | null;
   hot_water_ok: boolean | null;
   comment: string | null;
+  /** 投稿者が写真をキャンプ場の紹介写真に使ってよいと許可したか */
+  photo_reuse_ok: boolean;
   created_at: string;
   profiles: { display_name: string; avatar_url: string | null } | null;
   checkin_photos: { storage_path: string; sort_order: number }[];

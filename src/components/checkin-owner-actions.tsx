@@ -32,7 +32,7 @@ export function CheckinOwnerActions({
         type="button"
         disabled={pending}
         onClick={() => {
-          if (!confirm("このキャン活を削除しますか？\n写真も一緒に消え、元に戻せません。")) return;
+          if (!confirm("このキャン活を削除しますか？\n写真も一緒に消え、元に戻せません。\nキャンプ場の紹介写真に使われていれば、そこからも外れます。")) return;
           setError(null);
           startTransition(async () => {
             const result = await deleteCheckin({ id, campsiteId });

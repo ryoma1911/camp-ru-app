@@ -2,12 +2,17 @@
 
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { CAMPSITE_IMAGES_TAG } from "@/lib/campsite-images";
 import { SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
 import { checkinTag } from "@/lib/checkin-share";
 import { PHOTO_BUCKET, parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** 自分の投稿を書き換える。写真は「残したもの＋追加したもの」に置き換え、外したファイルは消す */
+/**
+ * 自分の投稿を書き換える。写真は「残したもの＋追加したもの」にし、外したファイルは消す。
+ * 残した写真の行は消さずに並び順だけ直す（キャンプ場の紹介写真に採用されていても外れないように）。
+ * 外した写真・許可を外したときに採用されていた写真は、DB 側で自動的に紹介写真から外れる
+ */
 export async function updateCheckin(
   target: { id: string; campsiteId: string; slug: string },
   _prev: CheckinFormState,
@@ -35,15 +40,23 @@ export async function updateCheckin(
 
   const { data: oldPhotos } = await supabase
     .from("checkin_photos")
-    .select("storage_path")
+    .select("id, storage_path")
     .eq("checkin_id", target.id);
-  const removed = (oldPhotos ?? []).map((p) => p.storage_path).filter((p) => !parsed.photoPaths.includes(p));
+  const old = oldPhotos ?? [];
+  const removedRows = old.filter((p) => !parsed.photoPaths.includes(p.storage_path));
+  const removed = removedRows.map((p) => p.storage_path);
 
-  await supabase.from("checkin_photos").delete().eq("checkin_id", target.id);
-  if (parsed.photoPaths.length > 0) {
-    const { error: photoError } = await supabase
-      .from("checkin_photos")
-      .insert(parsed.photoPaths.map((path, i) => ({ checkin_id: target.id, storage_path: path, sort_order: i })));
+  if (removedRows.length > 0) {
+    await supabase.from("checkin_photos").delete().in("id", removedRows.map((p) => p.id));
+  }
+  const added: { checkin_id: string; storage_path: string; sort_order: number }[] = [];
+  for (const [i, path] of parsed.photoPaths.entries()) {
+    const kept = old.find((p) => p.storage_path === path);
+    if (kept) await supabase.from("checkin_photos").update({ sort_order: i }).eq("id", kept.id);
+    else added.push({ checkin_id: target.id, storage_path: path, sort_order: i });
+  }
+  if (added.length > 0) {
+    const { error: photoError } = await supabase.from("checkin_photos").insert(added);
     if (photoError) console.error("checkin photos insert failed", photoError);
   }
   if (removed.length > 0) {
@@ -54,10 +67,11 @@ export async function updateCheckin(
   updateTag(checkinsTag(target.campsiteId));
   updateTag(SUMMARIES_TAG);
   updateTag(checkinTag(target.id));
+  updateTag(CAMPSITE_IMAGES_TAG);
   redirect(`/campsites/${target.slug}?updated=1`);
 }
 
-/** 自分の投稿を削除する。写真ファイルも一緒に消す */
+/** 自分の投稿を削除する。写真ファイルも一緒に消す（紹介写真に採用されていれば DB 側で自動的に外れる） */
 export async function deleteCheckin(target: { id: string; campsiteId: string }): Promise<{ error: string | null }> {
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getClaims();
@@ -89,6 +103,7 @@ export async function deleteCheckin(target: { id: string; campsiteId: string }):
   updateTag(checkinsTag(target.campsiteId));
   updateTag(SUMMARIES_TAG);
   updateTag(checkinTag(target.id));
+  updateTag(CAMPSITE_IMAGES_TAG);
   refresh();
   return { error: null };
 }

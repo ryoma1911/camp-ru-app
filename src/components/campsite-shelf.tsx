@@ -1,19 +1,14 @@
 import Link from "next/link";
 import type { CheckinSummary } from "@/lib/campsite-stats";
 import { LOCATION_TYPE, type Campsite } from "@/lib/labels";
-import { supabaseUrl } from "@/lib/supabase/env";
+import { CampsiteThumb } from "./campsite-thumb";
 
-export type ShelfItem = { campsite: Campsite; summary?: CheckinSummary; isNew?: boolean };
-
-// 写真がないときの背景（キャンプ場の種類ごとの色。文字は同じ色の濃い色）
-const TYPE_STYLE: Record<keyof typeof LOCATION_TYPE, string> = {
-  forest: "bg-emerald-100 text-emerald-900",
-  river: "bg-sky-100 text-sky-900",
-  lake: "bg-cyan-100 text-cyan-900",
-  highland: "bg-lime-100 text-lime-900",
-  sea: "bg-blue-100 text-blue-900",
-  meadow: "bg-green-100 text-green-900",
-  view: "bg-indigo-100 text-indigo-900",
+export type ShelfItem = {
+  campsite: Campsite;
+  summary?: CheckinSummary;
+  /** カバー写真の URL（運営が登録した写真だけ。キャン活の写真は使わない） */
+  cover?: string;
+  isNew?: boolean;
 };
 
 const PEG_SHORT = { plastic: "プラペグ", steel: "スチール", forged: "鍛造", rocky: "石が多い" } as const;
@@ -58,26 +53,13 @@ export function CampsiteShelf({
   );
 }
 
-function ShelfCard({ item: { campsite: c, summary: s, isNew }, month }: { item: ShelfItem; month: number }) {
+function ShelfCard({ item: { campsite: c, summary: s, cover, isNew }, month }: { item: ShelfItem; month: number }) {
   const monthAvg = s?.monthAvgTemp[month];
   const temp = monthAvg != null ? `${month}月 平均${monthAvg}℃` : s?.coldest != null ? `最低${s.coldest}℃` : null;
   return (
     <Link href={`/campsites/${c.slug}`} className="block h-full overflow-hidden rounded-xl border border-stone-200 bg-white hover:bg-stone-50">
       <div className="relative h-28">
-        {s?.latestPhoto ? (
-          // Supabase Storage の公開URLをそのまま表示（MVPでは画像最適化は使わない）
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`${supabaseUrl}/storage/v1/object/public/checkin-photos/${s.latestPhoto}`}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className={`flex h-full items-center justify-center text-2xl font-bold ${TYPE_STYLE[c.location_type]}`}>
-            {LOCATION_TYPE[c.location_type]}
-          </div>
-        )}
+        <CampsiteThumb campsite={c} cover={cover} className="h-full w-full" />
         {isNew ? (
           <span className="absolute left-2 top-2 rounded-full bg-amber-700 px-2 py-0.5 text-xs font-bold text-white">NEW</span>
         ) : s ? (

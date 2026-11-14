@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { CampsiteShelf } from "@/components/campsite-shelf";
 import { HeroSearch } from "@/components/search/hero-search";
 import { RefinePanel } from "@/components/search/refine-panel";
+import { CampsiteThumb } from "@/components/campsite-thumb";
 import { Tag } from "@/components/tag";
+import { getCampsiteCovers } from "@/lib/campsite-images";
 import { getCheckinSummaries, type CheckinSummary } from "@/lib/campsite-stats";
 import { getCampsites } from "@/lib/campsites";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Campsite } from "@/lib/labels";
@@ -38,7 +40,12 @@ export default function Home(props: Props) {
 }
 
 async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
-  const [params, campsites, summaries] = await Promise.all([searchParams, getCampsites(), getCheckinSummaries()]);
+  const [params, campsites, summaries, covers] = await Promise.all([
+    searchParams,
+    getCampsites(),
+    getCheckinSummaries(),
+    getCampsiteCovers(),
+  ]);
   // ここから先は「今月」「登録から30日以内」など現在時刻を使うので、リクエスト時にだけ動かす
   await connection();
   const month = currentMonthInJapan();
@@ -78,7 +85,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
           note={recommended.hasAuto ? `${month}月に行く人に人気` : "Campるのおすすめ"}
           moreHref={toQuery({ sort: "recommend" })}
           month={month}
-          items={recommended.items.map((c) => ({ campsite: c, summary: summaries[c.id] }))}
+          items={recommended.items.map((c) => ({ campsite: c, summary: summaries[c.id], cover: covers[c.id] }))}
         />
         <CampsiteShelf
           title="最近登録されたキャンプ場"
@@ -88,6 +95,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
           items={recent.map((c) => ({
             campsite: c,
             summary: summaries[c.id],
+            cover: covers[c.id],
             isNew: isWithinDays(c.created_at, NEW_DAYS),
           }))}
         />
@@ -140,7 +148,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
               )}
             </div>
           ) : (
-            <CampsiteList campsites={result.matched} summaries={summaries} month={filters.month} />
+            <CampsiteList campsites={result.matched} summaries={summaries} covers={covers} month={filters.month} />
           )}
 
           {result.noData.length > 0 && (
@@ -155,7 +163,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
                   {filters.nodata ? "隠す" : "表示する"}
                 </Link>
               </p>
-              {filters.nodata && <CampsiteList campsites={result.noData} summaries={summaries} month={filters.month} />}
+              {filters.nodata && <CampsiteList campsites={result.noData} summaries={summaries} covers={covers} month={filters.month} />}
             </div>
           )}
         </div>
@@ -197,31 +205,42 @@ function SortLinks({ filters }: { filters: Filters }) {
 function CampsiteList({
   campsites,
   summaries,
+  covers,
   month,
 }: {
   campsites: Campsite[];
   summaries: Record<string, CheckinSummary>;
+  covers: Record<string, string>;
   month: number | null;
 }) {
   return (
     <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
       {campsites.map((c) => (
         <li key={c.id}>
-          <Link href={`/campsites/${c.slug}`} className="block p-4 hover:bg-stone-50">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-semibold">{c.name}</h2>
-              <span className="shrink-0 text-xs text-stone-500">{c.prefecture}</span>
+          <Link href={`/campsites/${c.slug}`} className="flex gap-3 p-4 hover:bg-stone-50 sm:gap-4">
+            {/* カバー写真（運営が登録した写真）。なければ種類の色 */}
+            <CampsiteThumb
+              campsite={c}
+              cover={covers[c.id]}
+              className="h-16 w-16 shrink-0 rounded-lg sm:h-24 sm:w-32"
+              labelClassName="text-xs sm:text-sm"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-semibold">{c.name}</h2>
+                <span className="shrink-0 text-xs text-stone-500">{c.prefecture}</span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                <Tag>{LOCATION_TYPE[c.location_type]}</Tag>
+                <Tag>{SITE_STYLE[c.site_style]}</Tag>
+                <Tag>{FIRE_RULE[c.fire_rule]}</Tag>
+                {c.car_access && <Tag>車乗り入れ可</Tag>}
+                {c.has_hot_water && <Tag>炊事場お湯</Tag>}
+                {c.has_shower && <Tag>シャワー</Tag>}
+                {c.has_bath && <Tag>風呂</Tag>}
+              </div>
+              <SummaryRow summary={summaries[c.id]} month={month} />
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-              <Tag>{LOCATION_TYPE[c.location_type]}</Tag>
-              <Tag>{SITE_STYLE[c.site_style]}</Tag>
-              <Tag>{FIRE_RULE[c.fire_rule]}</Tag>
-              {c.car_access && <Tag>車乗り入れ可</Tag>}
-              {c.has_hot_water && <Tag>炊事場お湯</Tag>}
-              {c.has_shower && <Tag>シャワー</Tag>}
-              {c.has_bath && <Tag>風呂</Tag>}
-            </div>
-            <SummaryRow summary={summaries[c.id]} month={month} />
           </Link>
         </li>
       ))}

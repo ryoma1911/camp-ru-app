@@ -55,10 +55,7 @@ function breakdown<K extends string>(labels: Record<K, string>, values: K[]): Br
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-type SummaryRow = Pick<Row, "visited_on" | "min_temp_c" | "ground_type" | "peg_needed" | "fire_status"> & {
-  created_at: string;
-  checkin_photos: { storage_path: string; sort_order: number }[];
-};
+type SummaryRow = Pick<Row, "visited_on" | "min_temp_c" | "ground_type" | "peg_needed" | "fire_status">;
 
 /** トップの一覧に出す、キャンプ場ごとの簡易集計 */
 export type CheckinSummary = {
@@ -73,8 +70,6 @@ export type CheckinSummary = {
   monthAvgTemp: Record<number, number>;
   /** 月（1〜12）ごとのキャン活の件数（「今月に行く人に人気」の判定に使う） */
   monthCount: Record<number, number>;
-  /** 一番新しいキャン活の1枚目の写真（Storage のパス）。写真付きの投稿がなければ null */
-  latestPhoto: string | null;
 };
 
 /**
@@ -89,11 +84,11 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("checkins")
-    .select("campsite_id, visited_on, min_temp_c, ground_type, peg_needed, fire_status, created_at, checkin_photos(storage_path, sort_order)");
+    .select("campsite_id, visited_on, min_temp_c, ground_type, peg_needed, fire_status");
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
 
   const groups = new Map<string, SummaryRow[]>();
-  for (const r of (data ?? []) as unknown as (SummaryRow & { campsite_id: string })[]) {
+  for (const r of (data ?? []) as (SummaryRow & { campsite_id: string })[]) {
     groups.set(r.campsite_id, [...(groups.get(r.campsite_id) ?? []), r]);
   }
 
@@ -127,16 +122,9 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
       const m = Number(r.visited_on.slice(5, 7));
       monthCount[m] = (monthCount[m] ?? 0) + 1;
     }
-    const withPhoto = rows
-      .filter((r) => r.checkin_photos.length > 0)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-    const latestPhoto = withPhoto
-      ? [...withPhoto.checkin_photos].sort((a, b) => a.sort_order - b.sort_order)[0].storage_path
-      : null;
     result[campsiteId] = {
       count: rows.length,
       monthCount,
-      latestPhoto,
       coldest,
       coldestMonth,
       topPeg: peg?.count ? peg.key : null,
