@@ -56,7 +56,7 @@ export function ImageUploader({ campsiteId, room }: { campsiteId: string; room: 
           value={credit}
           onChange={(e) => setCredit(e.target.value)}
           maxLength={40}
-          placeholder="空なら「Campる」"
+          placeholder="空なら「ソトアソビ」"
           className="h-11 w-full rounded-lg border border-stone-300 bg-white px-3"
         />
       </label>

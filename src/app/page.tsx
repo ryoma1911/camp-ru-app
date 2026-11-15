@@ -9,6 +9,7 @@ import { Tag } from "@/components/tag";
 import { getCampsiteCovers } from "@/lib/campsite-images";
 import { getCheckinSummaries, type CheckinSummary } from "@/lib/campsite-stats";
 import { getCampsites } from "@/lib/campsites";
+import { SITE_NAME } from "@/lib/site";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Campsite } from "@/lib/labels";
 import {
   NEW_DAYS,
@@ -82,7 +83,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
         {hero}
         <CampsiteShelf
           title="おすすめのキャンプ場"
-          note={recommended.hasAuto ? `${month}月に行く人に人気` : "Campるのおすすめ"}
+          note={recommended.hasAuto ? `${month}月に行く人に人気` : `${SITE_NAME}のおすすめ`}
           moreHref={toQuery({ sort: "recommend" })}
           month={month}
           items={recommended.items.map((c) => ({ campsite: c, summary: summaries[c.id], cover: covers[c.id] }))}

@@ -2,6 +2,7 @@ import "server-only";
 import { ImageResponse } from "next/og";
 import { cardTiles, visitedMonth, type CheckinWithCampsite } from "@/lib/checkin-share";
 import { loadJapaneseFont } from "@/lib/og-font";
+import { SITE_NAME, TAGLINE } from "@/lib/site";
 import { supabaseUrl } from "@/lib/supabase/env";
 
 // X で大きな画像として表示される比率（1.91:1）
@@ -10,7 +11,6 @@ export const OG_SIZE = { width: 1200, height: 630 };
 const GREEN = "#085041";
 const MINT = "#9FE1CB";
 const PALE = "#E1F5EE";
-const TAGLINE = "行った人のリアルでわかる、キャンプ場の現地コンディション";
 
 /**
  * ソト活1件のシェア用カード。
@@ -28,7 +28,7 @@ export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageRe
   const photoUrl = photo ? `${supabaseUrl}/storage/v1/object/public/checkin-photos/${photo.storage_path}` : null;
 
   const allText = [
-    "Campる", TAGLINE, c.campsites.name, c.campsites.prefecture, `${month}月のソト活`, `${month}月・`,
+    SITE_NAME, TAGLINE, c.campsites.name, c.campsites.prefecture, `${month}月のソト活`, `${month}月・`,
     ...tiles.flatMap((t) => [t.label, t.value, t.sub]),
   ].join("");
   const [regular, bold] = await Promise.all([loadJapaneseFont(allText, 500), loadJapaneseFont(allText, 700)]);
@@ -46,7 +46,7 @@ export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageRe
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1, padding: "44px 48px", color: "#fff" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 26, color: MINT }}>{`${month}月・${c.campsites.prefecture}`}</span>
-          <span style={{ fontSize: 34, fontWeight: 700 }}>Campる</span>
+          <span style={{ fontSize: 34, fontWeight: 700 }}>{SITE_NAME}</span>
         </div>
         <div style={{ display: "flex", fontSize: nameSizeB, fontWeight: 700, lineHeight: 1.25 }}>{c.campsites.name}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -64,7 +64,7 @@ export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageRe
     <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", background: GREEN, color: "#fff", padding: "52px 60px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 28, color: MINT }}>{`${month}月のソト活　${c.campsites.prefecture}`}</span>
-        <span style={{ fontSize: 38, fontWeight: 700 }}>Campる</span>
+        <span style={{ fontSize: 38, fontWeight: 700 }}>{SITE_NAME}</span>
       </div>
       <div style={{ display: "flex", fontSize: nameSizeA, fontWeight: 700, lineHeight: 1.2 }}>{c.campsites.name}</div>
       <div style={{ display: "flex", gap: 24 }}>

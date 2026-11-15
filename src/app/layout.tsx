@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { UserMenu } from "@/components/user-menu";
+import { SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
   // シェア用カード画像などの URL をこのドメインで作る（本番では Vercel の環境変数に公開URLを入れる）
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "Campる | キャンプ場の現地コンディションがわかる",
-    template: "%s | Campる",
+    default: `${SITE_NAME} | みんなでつくるキャンプ場検索サイト`,
+    template: `%s | ${SITE_NAME}`,
   },
   description:
     "実際に行った人の投稿で、キャンプ場の明け方の気温・地面とペグ・焚き火できたかがわかる。",
@@ -22,7 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-stone-200 bg-white">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
             <Link href="/" className="text-lg font-bold tracking-tight text-emerald-800">
-              Campる
+              {SITE_NAME}
             </Link>
             <Suspense fallback={<div className="h-9 w-32" />}>
               <UserMenu />

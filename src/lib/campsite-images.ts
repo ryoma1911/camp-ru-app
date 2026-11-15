@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cacheLife, cacheTag } from "next/cache";
 import { storageUrl } from "@/lib/image-url";
+import { SITE_NAME } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
@@ -15,7 +16,7 @@ export type CampsiteImage = {
   id: string;
   source: "own" | "checkin";
   url: string;
-  /** 写真の下に出す撮影者の表示（例：「撮影：Campる」「撮影：ソト活／キャンパー1234」） */
+  /** 写真の下に出す撮影者の表示（例：「撮影：ソトアソビ」「撮影：ソト活／キャンパー1234」） */
   credit: string;
   /** own のときだけ。管理画面で撮影者の表示を編集するのに使う */
   rawCredit: string | null;
@@ -42,7 +43,7 @@ function toImage(r: Row): CampsiteImage | null {
       id: r.id,
       source: "own",
       url: storageUrl("campsite-images", r.storage_path),
-      credit: `撮影：${r.credit || "Campる"}`,
+      credit: `撮影：${r.credit || SITE_NAME}`,
       rawCredit: r.credit,
       storagePath: r.storage_path,
     };

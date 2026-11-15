@@ -96,7 +96,7 @@ async function AdminImagesContent({ params }: Pick<Props, "params">) {
                         name="credit"
                         defaultValue={img.rawCredit ?? ""}
                         maxLength={40}
-                        placeholder="撮影者（空なら「Campる」）"
+                        placeholder="撮影者（空なら「ソトアソビ」）"
                         aria-label="撮影者の表示"
                         className="h-9 min-w-0 flex-1 rounded border border-stone-300 px-2"
                       />

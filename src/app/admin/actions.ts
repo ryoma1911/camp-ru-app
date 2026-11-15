@@ -109,7 +109,7 @@ export async function moveImage(campsiteId: string, imageId: string, direction: 
   changed();
 }
 
-/** 自分で撮った写真の撮影者の表示を変える（空なら「Campる」と表示） */
+/** 自分で撮った写真の撮影者の表示を変える（空なら「ソトアソビ」と表示） */
 export async function updateCredit(imageId: string, formData: FormData) {
   const supabase = await adminClient();
   const credit = String(formData.get("credit") ?? "").trim().slice(0, 40) || null;

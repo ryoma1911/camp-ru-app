@@ -3,6 +3,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, CHECKIN_COLUMNS } from "@/lib/campsites";
 import { BUG_LEVEL, GROUND_TYPE, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
+import { SITE_NAME } from "@/lib/site";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 export type CheckinWithCampsite = Checkin & {
@@ -62,5 +63,5 @@ export function shareText(c: Checkin, campsiteName: string): string {
   parts.push(
     c.fire_status === "done" ? "焚き火できた" : c.fire_status === "skipped_wind" ? "風で焚き火は断念" : "焚き火は禁止",
   );
-  return `${campsiteName}、${parts.join("。")}。 #ソト活 #Campる`;
+  return `${campsiteName}、${parts.join("。")}。 #ソト活 #${SITE_NAME}`;
 }

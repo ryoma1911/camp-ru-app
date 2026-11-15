@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { CheckinSummary } from "@/lib/campsite-stats";
 import type { Campsite } from "@/lib/labels";
 import { EMPTY_FILTERS, countMatches, toQuery, type Filters, type SearchTab } from "@/lib/search";
+import { SITE_NAME, TAGLINE } from "@/lib/site";
 import { FeatureFields, PrefectureFields } from "./fields";
 
 const TABS: { key: SearchTab; label: string; short: string }[] = [
@@ -60,8 +61,15 @@ export function HeroSearch({
     <section className={`rounded-2xl bg-emerald-800 text-white ${compact ? "px-3 py-3" : "px-4 py-8 sm:py-12"}`}>
       {!compact && (
         <div className="mb-6 text-center">
-          <p className="text-sm text-emerald-100">行った人のリアルでわかる、キャンプ場の現地コンディション</p>
-          <p className="mt-2 text-4xl font-bold tracking-wide sm:text-5xl">Campる</p>
+          <p className="text-sm text-emerald-100">
+            {/* スマホで折り返すときは「、」のあとで切る（言葉の途中で切れないように） */}
+            {TAGLINE.split(/(?<=、)/).map((part) => (
+              <span key={part} className="inline-block">
+                {part}
+              </span>
+            ))}
+          </p>
+          <p className="mt-2 text-4xl font-bold tracking-wide sm:text-5xl">{SITE_NAME}</p>
         </div>
       )}
 

@@ -3,7 +3,7 @@ import { OG_SIZE, renderCheckinCard } from "@/lib/og-card";
 
 export const size = OG_SIZE;
 export const contentType = "image/png";
-export const alt = "Campる のソト活：明け方の気温・ペグ・焚き火";
+export const alt = "ソトアソビ のソト活：明け方の気温・ペグ・焚き火";
 
 /** ソト活1件のシェア用カード（写真があれば B、なければ A。描き方は lib/og-card.tsx） */
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
