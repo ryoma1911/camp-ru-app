@@ -1,4 +1,4 @@
-// キャン活1件の共有まわり（ページの取得、Xに投稿する文面、カード画像に載せる短い言い方）
+// ソト活1件の共有まわり（ページの取得、Xに投稿する文面、カード画像に載せる短い言い方）
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, CHECKIN_COLUMNS } from "@/lib/campsites";
@@ -11,7 +11,7 @@ export type CheckinWithCampsite = Checkin & {
 
 export const checkinTag = (id: string) => `checkin-${id}`;
 
-/** キャン活1件（公開ページとカード画像用）。編集・削除で updateTag(checkinTag(id)) して入れ替える */
+/** ソト活1件（公開ページとカード画像用）。編集・削除で updateTag(checkinTag(id)) して入れ替える */
 export async function getCheckin(id: string): Promise<CheckinWithCampsite | null> {
   "use cache";
   cacheLife("hours");
@@ -24,7 +24,7 @@ export async function getCheckin(id: string): Promise<CheckinWithCampsite | null
     .select(`${CHECKIN_COLUMNS}, campsites(id, slug, name, prefecture)`)
     .eq("id", id)
     .maybeSingle();
-  if (error) throw new Error(`キャン活の取得に失敗しました: ${error.message}`);
+  if (error) throw new Error(`ソト活の取得に失敗しました: ${error.message}`);
   return data as unknown as CheckinWithCampsite | null;
 }
 
@@ -62,5 +62,5 @@ export function shareText(c: Checkin, campsiteName: string): string {
   parts.push(
     c.fire_status === "done" ? "焚き火できた" : c.fire_status === "skipped_wind" ? "風で焚き火は断念" : "焚き火は禁止",
   );
-  return `${campsiteName}、${parts.join("。")}。 #キャン活 #Campる`;
+  return `${campsiteName}、${parts.join("。")}。 #ソト活 #Campる`;
 }

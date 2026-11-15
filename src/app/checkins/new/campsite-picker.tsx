@@ -15,7 +15,7 @@ export type PickerCampsite = {
 
 const MAX_RESULTS = 30;
 
-/** キャン活を投稿するキャンプ場を選ぶ。前に投稿したキャンプ場を上に出す */
+/** ソト活を投稿するキャンプ場を選ぶ。前に投稿したキャンプ場を上に出す */
 export function CampsitePicker({
   campsites,
   visitedSlugs,

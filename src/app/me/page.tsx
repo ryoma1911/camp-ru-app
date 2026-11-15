@@ -48,14 +48,14 @@ async function MyPageContent() {
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-bold">わたしのキャン活</h2>
+          <h2 className="text-lg font-bold">わたしのソト活</h2>
           <p className="text-sm text-stone-600">
             {checkins.length}件・{campsiteCount}か所のキャンプ場
           </p>
         </div>
         {checkins.length === 0 ? (
           <p className="rounded-lg border border-dashed border-stone-300 p-6 text-sm text-stone-600">
-            まだキャン活がありません。<Link href="/" className="text-emerald-700 underline">キャンプ場をさがす</Link>
+            まだソト活がありません。<Link href="/" className="text-emerald-700 underline">キャンプ場をさがす</Link>
           </p>
         ) : (
           <ul className="space-y-3">

@@ -49,7 +49,7 @@ export const FACILITIES = {
 } as const;
 export type Facility = keyof typeof FACILITIES;
 
-/** 現地のリアル（キャン活の集計）。複数選んだら「すべて満たす」 */
+/** 現地のリアル（ソト活の集計）。複数選んだら「すべて満たす」 */
 export const REALS = {
   plastic: "プラペグでOK",
   steel: "スチールまででOK",
@@ -139,7 +139,7 @@ export const byNewest = (a: Campsite, b: Campsite) =>
   b.created_at.localeCompare(a.created_at) || a.name.localeCompare(b.name, "ja");
 
 /**
- * おすすめ順：運営が選んだもの（featured_rank の小さい順）→ 今月のキャン活が多い順 → 全期間のキャン活が多い順。
+ * おすすめ順：運営が選んだもの（featured_rank の小さい順）→ 今月のソト活が多い順 → 全期間のソト活が多い順。
  * month は日本時間の今月（1〜12）
  */
 export function byRecommended(summaries: Record<string, CheckinSummary>, month: number) {
@@ -152,7 +152,7 @@ export function byRecommended(summaries: Record<string, CheckinSummary>, month: 
 
 /**
  * トップの「おすすめのキャンプ場」。運営が選んだものを先に出し、残りの枠を自動で埋める。
- * 自動の枠には、キャン活が1件以上あるキャンプ場だけを使う（投稿のないキャンプ場はおすすめしない）
+ * 自動の枠には、ソト活が1件以上あるキャンプ場だけを使う（投稿のないキャンプ場はおすすめしない）
  */
 export function pickRecommended(
   campsites: Campsite[],

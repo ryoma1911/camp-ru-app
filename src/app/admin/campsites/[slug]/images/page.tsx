@@ -86,7 +86,7 @@ async function AdminImagesContent({ params }: Pick<Props, "params">) {
                   <p className="flex flex-wrap items-center gap-2">
                     {i === 0 && <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-xs font-bold text-white">カバー</span>}
                     <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs">
-                      {img.source === "own" ? "自分で撮った写真" : "キャン活から採用"}
+                      {img.source === "own" ? "自分で撮った写真" : "ソト活から採用"}
                     </span>
                     <span className="text-xs text-stone-500">{img.credit}</span>
                   </p>
@@ -146,7 +146,7 @@ async function AdminImagesContent({ params }: Pick<Props, "params">) {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold">キャン活から採用</h2>
+        <h2 className="text-lg font-bold">ソト活から採用</h2>
         <p className="text-sm text-stone-600">
           投稿者が「紹介写真に使ってよい」と許可した写真だけが並びます。投稿が消されたり許可が外されたりすると、紹介写真からも自動で外れます。
         </p>

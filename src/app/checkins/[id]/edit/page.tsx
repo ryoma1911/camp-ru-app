@@ -6,7 +6,7 @@ import { updateCheckin } from "@/app/checkins/actions";
 import { getCurrentUserId } from "@/lib/auth";
 import { getMyCheckin } from "@/lib/my-checkins";
 
-export const metadata = { title: "キャン活を編集" };
+export const metadata = { title: "ソト活を編集" };
 
 type Props = PageProps<"/checkins/[id]/edit">;
 
@@ -39,7 +39,7 @@ async function EditContent({ params }: Pick<Props, "params">) {
         <Link href={`/campsites/${checkin.campsites.slug}`} className="text-sm text-emerald-700 underline">
           ← {checkin.campsites.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold">キャン活を編集</h1>
+        <h1 className="mt-2 text-2xl font-bold">ソト活を編集</h1>
       </div>
       <CheckinForm
         action={action}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BUG_LEVEL, FIRE_STATUS, GROUND_TYPE, PEG_NEEDED, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
 import { supabaseUrl } from "@/lib/supabase/env";
 
-/** キャン活1件の表示。heading（投稿者名やキャンプ場名）と actions（編集・削除）は呼び出し側で決める */
+/** ソト活1件の表示。heading（投稿者名やキャンプ場名）と actions（編集・削除）は呼び出し側で決める */
 export function CheckinCard({
   checkin: c,
   heading,

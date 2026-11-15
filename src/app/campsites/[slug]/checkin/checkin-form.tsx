@@ -34,7 +34,7 @@ function todayInJapan() {
 const yesNo = (v: boolean | null | undefined) => (v == null ? undefined : v ? "yes" : "no");
 const str = (v: number | string | null | undefined) => (v == null ? undefined : String(v));
 
-export function CheckinForm({ action, userId, initial, submitLabel = "キャン活を投稿する", cancelHref }: Props) {
+export function CheckinForm({ action, userId, initial, submitLabel = "ソト活を投稿する", cancelHref }: Props) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, { error: null });
   const [uploading, setUploading] = useState(false);

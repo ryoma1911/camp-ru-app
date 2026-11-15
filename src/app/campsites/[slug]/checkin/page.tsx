@@ -8,7 +8,7 @@ import type { Campsite } from "@/lib/labels";
 import { createCheckin } from "./actions";
 import { CheckinForm } from "./checkin-form";
 
-export const metadata = { title: "キャン活を投稿" };
+export const metadata = { title: "ソト活を投稿" };
 
 export async function generateStaticParams() {
   const campsites = await getCampsites();
@@ -37,7 +37,7 @@ async function CheckinContent({ params }: Pick<Props, "params">) {
         <Link href={`/campsites/${campsite.slug}`} className="text-sm text-emerald-700 underline">
           ← {campsite.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold">キャン活を投稿</h1>
+        <h1 className="mt-2 text-2xl font-bold">ソト活を投稿</h1>
         <p className="mt-1 text-sm text-stone-600">
           タップで選ぶだけ。①〜③が次に行く人の一番の手がかりになります。
         </p>

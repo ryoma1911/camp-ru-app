@@ -68,7 +68,7 @@ export type CheckinSummary = {
   windSkipRate: number | null;
   /** 月（1〜12）ごとの明け方の最低気温の平均。記録のない月は入らない */
   monthAvgTemp: Record<number, number>;
-  /** 月（1〜12）ごとのキャン活の件数（「今月に行く人に人気」の判定に使う） */
+  /** 月（1〜12）ごとのソト活の件数（「今月に行く人に人気」の判定に使う） */
   monthCount: Record<number, number>;
 };
 

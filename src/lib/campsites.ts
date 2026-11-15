@@ -11,7 +11,7 @@ export const CHECKIN_COLUMNS =
   "id, user_id, campsite_id, visited_on, min_temp_c, temp_measured, temp_at_dawn, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, car_access_ok, hot_water_ok, comment, photo_reuse_ok, created_at, profiles(display_name, avatar_url), checkin_photos(storage_path, sort_order)";
 
 export const checkinsTag = (campsiteId: string) => `checkins-${campsiteId}`;
-/** ニックネーム変更など、全キャンプ場のキャン活表示に影響する変更で使う */
+/** ニックネーム変更など、全キャンプ場のソト活表示に影響する変更で使う */
 export const ALL_CHECKINS_TAG = "checkins";
 /** トップの一覧に出す簡易集計。投稿・編集・削除のたびに入れ替える */
 export const SUMMARIES_TAG = "checkin-summaries";
@@ -50,7 +50,7 @@ export async function getCampsite(slug: string): Promise<Campsite | null> {
   return data as Campsite | null;
 }
 
-/** キャンプ場の新しい順のキャン活。投稿されたら updateTag で即座に入れ替える */
+/** キャンプ場の新しい順のソト活。投稿されたら updateTag で即座に入れ替える */
 export async function getRecentCheckins(campsiteId: string): Promise<Checkin[]> {
   "use cache";
   cacheLife("hours");
@@ -64,6 +64,6 @@ export async function getRecentCheckins(campsiteId: string): Promise<Checkin[]> 
     .order("visited_on", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(30);
-  if (error) throw new Error(`キャン活の取得に失敗しました: ${error.message}`);
+  if (error) throw new Error(`ソト活の取得に失敗しました: ${error.message}`);
   return data as unknown as Checkin[];
 }

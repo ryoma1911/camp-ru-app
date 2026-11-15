@@ -111,7 +111,7 @@ export function PrefectureFields({
   );
 }
 
-/** 特徴のチェック（公式の情報と、キャン活の集計） */
+/** 特徴のチェック（公式の情報と、ソト活の集計） */
 export function FeatureFields({ filters, onChange, countFor, compact }: FieldProps & { compact?: boolean }) {
   const count = (next: Filters) => (countFor ? countFor(next) : undefined);
   const grid = compact ? "grid grid-cols-1" : "grid grid-cols-2 gap-x-3 sm:grid-cols-3";
@@ -157,7 +157,7 @@ export function FeatureFields({ filters, onChange, countFor, compact }: FieldPro
         </div>
       </div>
       <div className="rounded-lg bg-emerald-50 p-3">
-        <GroupTitle note="キャン活の集計。データがないキャンプ場は結果から外れます">現地のリアル</GroupTitle>
+        <GroupTitle note="ソト活の集計。データがないキャンプ場は結果から外れます">現地のリアル</GroupTitle>
         <div className={grid}>
           {(Object.keys(REALS) as (keyof typeof REALS)[]).map((k) => {
             const next = { ...filters, reals: toggle(filters.reals, k) };

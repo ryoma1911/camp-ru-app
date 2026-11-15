@@ -71,7 +71,7 @@ export async function addOwnImages(
   return { error: null };
 }
 
-/** 投稿者が許可したキャン活の写真を採用する（ファイルはコピーせず、元の写真を参照する） */
+/** 投稿者が許可したソト活の写真を採用する（ファイルはコピーせず、元の写真を参照する） */
 export async function adoptCheckinPhoto(campsiteId: string, checkinPhotoId: string) {
   const supabase = await adminClient();
   if ((await countImages(supabase, campsiteId)) >= MAX_CAMPSITE_IMAGES) {
@@ -124,7 +124,7 @@ export async function updateCredit(imageId: string, formData: FormData) {
 
 /**
  * 写真を外す。自分で撮った写真はファイルも消す。
- * キャン活から採用した写真は、紹介写真から外すだけ（投稿の写真はそのまま残る）
+ * ソト活から採用した写真は、紹介写真から外すだけ（投稿の写真はそのまま残る）
  */
 export async function deleteImage(imageId: string) {
   const supabase = await adminClient();

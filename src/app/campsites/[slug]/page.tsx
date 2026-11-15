@@ -84,7 +84,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
           href={`/campsites/${campsite.slug}/checkin`}
           className="inline-flex h-11 items-center rounded-full bg-emerald-700 px-6 font-medium text-white hover:bg-emerald-800"
         >
-          キャン活を投稿する
+          ソト活を投稿する
         </Link>
       </section>
 
@@ -93,7 +93,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
       </Suspense>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold">みんなのキャン活</h2>
+        <h2 className="text-lg font-bold">みんなのソト活</h2>
         <Suspense fallback={<p className="text-sm text-stone-500">読み込み中…</p>}>
           <CheckinList campsiteId={campsite.id} />
         </Suspense>
@@ -105,7 +105,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
 async function PostedNotice({ searchParams }: Pick<Props, "searchParams">) {
   const { posted, updated } = await searchParams;
   const message =
-    posted === "1" ? "キャン活を投稿しました。ありがとうございます！" : updated === "1" ? "キャン活を更新しました。" : null;
+    posted === "1" ? "ソト活を投稿しました。ありがとうございます！" : updated === "1" ? "ソト活を更新しました。" : null;
   if (!message) return null;
   return (
     <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">{message}</p>
@@ -117,7 +117,7 @@ async function CheckinList({ campsiteId }: { campsiteId: string }) {
   if (checkins.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-stone-300 p-6 text-sm text-stone-600">
-        まだキャン活がありません。最初の投稿をお待ちしています。
+        まだソト活がありません。最初の投稿をお待ちしています。
       </p>
     );
   }

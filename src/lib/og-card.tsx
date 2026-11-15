@@ -13,7 +13,7 @@ const PALE = "#E1F5EE";
 const TAGLINE = "行った人のリアルでわかる、キャンプ場の現地コンディション";
 
 /**
- * キャン活1件のシェア用カード。
+ * ソト活1件のシェア用カード。
  * 写真がある投稿は B（左に1枚目の写真、右に3指標）、ない投稿は A（3指標を大きく）
  */
 export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageResponse> {
@@ -28,7 +28,7 @@ export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageRe
   const photoUrl = photo ? `${supabaseUrl}/storage/v1/object/public/checkin-photos/${photo.storage_path}` : null;
 
   const allText = [
-    "Campる", TAGLINE, c.campsites.name, c.campsites.prefecture, `${month}月のキャン活`, `${month}月・`,
+    "Campる", TAGLINE, c.campsites.name, c.campsites.prefecture, `${month}月のソト活`, `${month}月・`,
     ...tiles.flatMap((t) => [t.label, t.value, t.sub]),
   ].join("");
   const [regular, bold] = await Promise.all([loadJapaneseFont(allText, 500), loadJapaneseFont(allText, 700)]);
@@ -63,7 +63,7 @@ export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageRe
     // A：数字を大きく見せる型
     <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", background: GREEN, color: "#fff", padding: "52px 60px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 28, color: MINT }}>{`${month}月のキャン活　${c.campsites.prefecture}`}</span>
+        <span style={{ fontSize: 28, color: MINT }}>{`${month}月のソト活　${c.campsites.prefecture}`}</span>
         <span style={{ fontSize: 38, fontWeight: 700 }}>Campる</span>
       </div>
       <div style={{ display: "flex", fontSize: nameSizeA, fontWeight: 700, lineHeight: 1.2 }}>{c.campsites.name}</div>

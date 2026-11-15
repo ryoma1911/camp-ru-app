@@ -154,7 +154,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
           {result.noData.length > 0 && (
             <div className="space-y-3 rounded-lg bg-stone-100 p-4 text-sm text-stone-600">
               <p>
-                キャン活のデータがなく、判定できないキャンプ場：<span className="font-bold">{result.noData.length}件</span>
+                ソト活のデータがなく、判定できないキャンプ場：<span className="font-bold">{result.noData.length}件</span>
                 <Link
                   href={toQuery({ ...filters, nodata: !filters.nodata })}
                   className="ml-2 text-emerald-700 underline"
@@ -174,7 +174,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
 
 function SortLinks({ filters }: { filters: Filters }) {
   const options: { key: SortKey; label: string; disabled?: boolean }[] = [
-    { key: "posts", label: "キャン活が多い順" },
+    { key: "posts", label: "ソト活が多い順" },
     { key: "warm", label: filters.month ? `${filters.month}月に暖かい順` : "暖かい順", disabled: !filters.month },
     { key: "pref", label: "都道府県順" },
     { key: "recommend", label: "おすすめ順" },
@@ -257,17 +257,17 @@ const PEG_SHORT = {
 } as const;
 
 /**
- * キャン活の簡易集計（主役の3指標）。施設の公式情報（タグ）と区別するため色付きの帯にする。
+ * ソト活の簡易集計（主役の3指標）。施設の公式情報（タグ）と区別するため色付きの帯にする。
  * 月で絞り込んでいるときは、気温をその月の平均に切り替える
  */
 function SummaryRow({ summary, month }: { summary?: CheckinSummary; month: number | null }) {
   if (!summary) {
-    return <p className="mt-3 text-xs text-stone-400">キャン活はまだありません</p>;
+    return <p className="mt-3 text-xs text-stone-400">ソト活はまだありません</p>;
   }
   const monthAvg = month ? summary.monthAvgTemp[month] : undefined;
   return (
     <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2">
-      <p className="text-[11px] text-emerald-900/70">キャン活{summary.count}件の集計</p>
+      <p className="text-[11px] text-emerald-900/70">ソト活{summary.count}件の集計</p>
       <dl className="mt-1 grid grid-cols-3 gap-2 text-sm">
         {month ? (
           <Stat label={`${month}月の最低気温`} value={monthAvg != null ? `${monthAvg}℃` : "–"} sub="平均" />

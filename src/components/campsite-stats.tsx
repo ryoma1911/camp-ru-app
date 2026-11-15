@@ -12,7 +12,7 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
   if (stats.total === 0) {
     return (
       <section className="rounded-xl border border-dashed border-stone-300 p-6 text-sm text-stone-600">
-        まだキャン活がないため、現地コンディションは集計できていません。最初の1件を投稿すると、ここに気温・ペグ・焚き火の傾向が表示されます。
+        まだソト活がないため、現地コンディションは集計できていません。最初の1件を投稿すると、ここに気温・ペグ・焚き火の傾向が表示されます。
       </section>
     );
   }
@@ -21,7 +21,7 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
     <section className="space-y-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-bold">現地コンディション</h2>
-        <p className="text-sm text-stone-500">{stats.total}件のキャン活から</p>
+        <p className="text-sm text-stone-500">{stats.total}件のソト活から</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

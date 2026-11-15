@@ -12,8 +12,8 @@ type Props = PageProps<"/checkins/[id]">;
 export async function generateMetadata(props: Props) {
   const { id } = await props.params;
   const c = await getCheckin(id);
-  if (!c) return { title: "キャン活が見つかりません" };
-  const title = `${c.campsites.name}のキャン活（${visitedMonth(c)}月）`;
+  if (!c) return { title: "ソト活が見つかりません" };
+  const title = `${c.campsites.name}のソト活（${visitedMonth(c)}月）`;
   const description = cardTiles(c)
     .map((t) => `${t.label.replace(/^[①②③] /, "")}：${t.value}`)
     .join(" / ");
@@ -43,7 +43,7 @@ async function CheckinContent({ params, searchParams }: Pick<Props, "params" | "
     <div className="space-y-6">
       {sp.posted === "1" && mine && (
         <section className="space-y-3 rounded-xl border border-emerald-300 bg-emerald-50 p-5 text-center">
-          <p className="font-bold text-emerald-900">キャン活を投稿しました。ありがとうございます！</p>
+          <p className="font-bold text-emerald-900">ソト活を投稿しました。ありがとうございます！</p>
           <p className="text-sm text-emerald-900">次に行く人のために、Xでも共有してみませんか？</p>
           <ShareButton path={path} text={text} variant="primary" />
         </section>
@@ -54,7 +54,7 @@ async function CheckinContent({ params, searchParams }: Pick<Props, "params" | "
           ← {c.campsites.name}（{c.campsites.prefecture}）
         </Link>
         <h1 className="mt-2 text-2xl font-bold">
-          {c.campsites.name}のキャン活
+          {c.campsites.name}のソト活
           <span className="ml-2 text-base font-normal text-stone-500">{visitedMonth(c)}月</span>
         </h1>
       </div>
@@ -76,7 +76,7 @@ async function CheckinContent({ params, searchParams }: Pick<Props, "params" | "
         href={`/campsites/${c.campsites.slug}`}
         className="block rounded-xl border border-stone-200 bg-white p-4 text-sm hover:bg-stone-50"
       >
-        {c.campsites.name}の現地コンディション（みんなのキャン活の集計）を見る →
+        {c.campsites.name}の現地コンディション（みんなのソト活の集計）を見る →
       </Link>
     </div>
   );

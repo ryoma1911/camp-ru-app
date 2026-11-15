@@ -6,7 +6,7 @@ import { CampsiteThumb } from "./campsite-thumb";
 export type ShelfItem = {
   campsite: Campsite;
   summary?: CheckinSummary;
-  /** カバー写真の URL（運営が登録した写真だけ。キャン活の写真は使わない） */
+  /** カバー写真の URL（運営が登録した写真だけ。ソト活の写真は使わない） */
   cover?: string;
   isNew?: boolean;
 };
@@ -64,7 +64,7 @@ function ShelfCard({ item: { campsite: c, summary: s, cover, isNew }, month }: {
           <span className="absolute left-2 top-2 rounded-full bg-amber-700 px-2 py-0.5 text-xs font-bold text-white">NEW</span>
         ) : s ? (
           <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-bold text-emerald-900">
-            キャン活 {s.count}件
+            ソト活 {s.count}件
           </span>
         ) : null}
       </div>
@@ -80,7 +80,7 @@ function ShelfCard({ item: { campsite: c, summary: s, cover, isNew }, month }: {
               .join("・")}
           </p>
         ) : (
-          <p className="text-xs text-stone-400">キャン活はまだありません・最初の投稿をしよう</p>
+          <p className="text-xs text-stone-400">ソト活はまだありません・最初の投稿をしよう</p>
         )}
       </div>
     </Link>

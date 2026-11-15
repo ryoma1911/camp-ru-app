@@ -65,7 +65,7 @@ export function AccountMenu({ name, admin }: { name: string; admin: boolean }) {
             マイページ
           </Link>
           <Link href="/checkins/new" className={item}>
-            キャン活登録
+            ソト活登録
           </Link>
           <Link href="/campsites/new" className={item}>
             キャンプ場登録

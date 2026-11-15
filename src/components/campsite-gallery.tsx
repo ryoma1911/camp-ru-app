@@ -3,7 +3,7 @@ import type { CampsiteImage } from "@/lib/campsite-images";
 import { Credit, GallerySwiper } from "./gallery-swiper";
 
 /**
- * キャンプ場ページの上部の写真（運営が登録した写真だけ。キャン活の写真は投稿の中にだけ出す）。
+ * キャンプ場ページの上部の写真（運営が登録した写真だけ。ソト活の写真は投稿の中にだけ出す）。
  * PC：大きい写真1枚＋小さい写真4枚。スマホ：横スワイプ。写真がなければ何も出さない
  */
 export function CampsiteGallery({ images, name, slug }: { images: CampsiteImage[]; name: string; slug: string }) {

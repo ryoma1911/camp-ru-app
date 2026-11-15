@@ -19,7 +19,7 @@ async function AdminContent() {
   const [campsites, { data: images }, { data: consented }, { count: pendingCount }] = await Promise.all([
     getCampsites(),
     supabase.from("campsite_images").select("campsite_id"),
-    // 紹介写真への採用を許可している、写真付きのキャン活
+    // 紹介写真への採用を許可している、写真付きのソト活
     supabase.from("checkins").select("campsite_id, checkin_photos!inner(id)").eq("photo_reuse_ok", true),
     supabase.from("campsite_submissions").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
@@ -54,7 +54,7 @@ async function AdminContent() {
       <section className="space-y-3">
         <h2 className="text-lg font-bold">キャンプ場の写真</h2>
         <p className="text-sm text-stone-600">
-          写真は「自分で撮った写真」か「投稿者が許可したキャン活の写真」だけを使います。
+          写真は「自分で撮った写真」か「投稿者が許可したソト活の写真」だけを使います。
         </p>
         <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
           {campsites.map((c) => {
@@ -75,7 +75,7 @@ async function AdminContent() {
                       {count} / {MAX_CAMPSITE_IMAGES}枚
                     </span>
                     {candidates > 0 && (
-                      <span className="block text-xs text-amber-800">採用できるキャン活写真 {candidates}枚</span>
+                      <span className="block text-xs text-amber-800">採用できるソト活写真 {candidates}枚</span>
                     )}
                   </span>
                 </Link>

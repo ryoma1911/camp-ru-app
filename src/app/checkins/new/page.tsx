@@ -6,14 +6,14 @@ import { byPrefecture } from "@/lib/search";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CampsitePicker } from "./campsite-picker";
 
-export const metadata = { title: "キャン活登録" };
+export const metadata = { title: "ソト活登録" };
 
-/** メニューの「キャン活登録」：まずキャンプ場を選び、そのキャンプ場の投稿フォームに移る */
+/** メニューの「ソト活登録」：まずキャンプ場を選び、そのキャンプ場の投稿フォームに移る */
 export default function NewCheckinPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">キャン活登録</h1>
+        <h1 className="text-2xl font-bold">ソト活登録</h1>
         <p className="mt-1 text-sm text-stone-600">行ったキャンプ場を選んでください。</p>
       </div>
       <Suspense fallback={<p className="text-sm text-stone-500">読み込み中…</p>}>
@@ -28,7 +28,7 @@ async function PickerOrLogin() {
   if (!userId) {
     return (
       <form action={signInWithGoogle} className="space-y-3 rounded-xl border border-stone-200 bg-white p-6 text-center">
-        <p className="text-sm">キャン活を登録するにはログインが必要です。</p>
+        <p className="text-sm">ソト活を登録するにはログインが必要です。</p>
         <input type="hidden" name="next" value="/checkins/new" />
         <button className="h-11 rounded-full bg-emerald-700 px-6 font-medium text-white hover:bg-emerald-800">
           Googleでログイン
