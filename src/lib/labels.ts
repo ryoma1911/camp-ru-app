@@ -49,6 +49,21 @@ export const SLEEP_QUALITY = {
   sleepless: "眠れなかった",
 } as const;
 
+/** 誰と行ったか（ソト活・任意） */
+export const PARTY_TYPE = {
+  solo: "ソロ",
+  couple: "カップル",
+  family: "ファミリー",
+  group: "グループ",
+} as const;
+
+/** 使った暖房（ソト活・任意・複数）。none（使わなかった）はほかと一緒に選べない */
+export const HEATER = {
+  wood_stove: "薪ストーブ",
+  kerosene_stove: "石油ストーブ",
+  none: "使わなかった",
+} as const;
+
 export const BUG_LEVEL = {
   1: "虫は少ない",
   2: "虫はふつう",
@@ -132,8 +147,8 @@ export type Checkin = {
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: keyof typeof BUG_LEVEL | null;
-  car_access_ok: boolean | null;
-  hot_water_ok: boolean | null;
+  party_type: keyof typeof PARTY_TYPE | null;
+  heaters: (keyof typeof HEATER)[] | null;
   comment: string | null;
   /** 投稿者が写真をキャンプ場の紹介写真に使ってよいと許可したか */
   photo_reuse_ok: boolean;

@@ -1,5 +1,5 @@
 import type { Breakdown, CampsiteStats as Stats, MonthStat, SleepStat } from "@/lib/campsite-stats";
-import { BUG_LEVEL, FIRE_STATUS, GROUND_TYPE, PEG_NEEDED } from "@/lib/labels";
+import { BUG_LEVEL, FIRE_STATUS, GROUND_TYPE, HEATER, PARTY_TYPE, PEG_NEEDED } from "@/lib/labels";
 
 // 0℃を境に、寒い側＝青・暖かい側＝オレンジ（色覚の違いがあっても区別できる組み合わせを検証済み）
 const COLD = "#0369a1";
@@ -271,8 +271,11 @@ function MeterList<K extends string>({
 }
 
 function Others({ stats }: { stats: Stats }) {
-  const yesNo = (s: { yes: number; no: number }, yes: string, no: string) =>
-    s.yes + s.no === 0 ? "記録なし" : `${yes} ${s.yes}件・${no} ${s.no}件`;
+  // 件数のある選択肢だけを多い順に「ソロ 5件・グループ 3件」と並べる
+  const counts = <K extends string>(items: { key: K; count: number }[], labels: Record<K, string>) => {
+    const found = items.filter((i) => i.count > 0);
+    return found.length ? found.map((i) => `${labels[i.key]} ${i.count}件`).join("・") : "記録なし";
+  };
   const bugLabel =
     stats.bug.avg == null ? "記録なし" : BUG_LEVEL[Math.round(stats.bug.avg) as keyof typeof BUG_LEVEL];
   return (
@@ -282,10 +285,10 @@ function Others({ stats }: { stats: Stats }) {
         {bugLabel}
         {stats.bug.count > 0 && <span className="ml-1 text-xs text-stone-500">（{stats.bug.count}件）</span>}
       </dd>
-      <dt className="text-stone-500">炊事場のお湯</dt>
-      <dd>{yesNo(stats.hotWater, "出た", "出なかった")}</dd>
-      <dt className="text-stone-500">車の乗り入れ</dt>
-      <dd>{yesNo(stats.carAccess, "できた", "できなかった")}</dd>
+      <dt className="text-stone-500">誰と</dt>
+      <dd>{counts(stats.party, PARTY_TYPE)}</dd>
+      <dt className="text-stone-500">暖房</dt>
+      <dd>{counts(stats.heaters, HEATER)}</dd>
     </dl>
   );
 }

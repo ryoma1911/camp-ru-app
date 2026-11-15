@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
-import { FIRE_STATUS, GROUND_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
+import { FIRE_STATUS, GROUND_TYPE, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 type Row = {
@@ -13,8 +13,8 @@ type Row = {
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: number | null;
-  car_access_ok: boolean | null;
-  hot_water_ok: boolean | null;
+  party_type: keyof typeof PARTY_TYPE | null;
+  heaters: (keyof typeof HEATER)[] | null;
 };
 
 /** 選択肢ごとの件数（多い順）。0件の選択肢も残して分布を表示できるようにする */
@@ -41,8 +41,10 @@ export type CampsiteStats = {
   peg: Breakdown<keyof typeof PEG_NEEDED>;
   fire: Breakdown<keyof typeof FIRE_STATUS>;
   bug: { count: number; avg: number | null };
-  hotWater: { yes: number; no: number };
-  carAccess: { yes: number; no: number };
+  /** 誰と行ったか（記録のある投稿だけを数える） */
+  party: Breakdown<keyof typeof PARTY_TYPE>;
+  /** 使った暖房（1件の投稿で複数あれば、それぞれ数える） */
+  heaters: Breakdown<keyof typeof HEATER>;
   months: MonthStat[];
   sleep: SleepStat[];
 };
@@ -149,7 +151,7 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
   const { data, error } = await supabase
     .from("checkins")
     .select(
-      "visited_on, min_temp_c, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, car_access_ok, hot_water_ok",
+      "visited_on, min_temp_c, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, party_type, heaters",
     )
     .eq("campsite_id", campsiteId);
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
@@ -187,14 +189,8 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
     peg: breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed)),
     fire: breakdown(FIRE_STATUS, rows.map((r) => r.fire_status)),
     bug: { count: bugs.length, avg: bugs.length ? round1(bugs.reduce((a, b) => a + b, 0) / bugs.length) : null },
-    hotWater: {
-      yes: rows.filter((r) => r.hot_water_ok === true).length,
-      no: rows.filter((r) => r.hot_water_ok === false).length,
-    },
-    carAccess: {
-      yes: rows.filter((r) => r.car_access_ok === true).length,
-      no: rows.filter((r) => r.car_access_ok === false).length,
-    },
+    party: breakdown(PARTY_TYPE, rows.flatMap((r) => (r.party_type ? [r.party_type] : []))),
+    heaters: breakdown(HEATER, rows.flatMap((r) => r.heaters ?? [])),
     months,
     sleep: [...sleepMap.values()].sort((a, b) => a.month - b.month || a.bagBand - b.bagBand),
   };

@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { BUG_LEVEL, FIRE_STATUS, GROUND_TYPE, PEG_NEEDED, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
+import {
+  BUG_LEVEL,
+  FIRE_STATUS,
+  GROUND_TYPE,
+  HEATER,
+  PARTY_TYPE,
+  PEG_NEEDED,
+  SLEEP_QUALITY,
+  type Checkin,
+} from "@/lib/labels";
 import { supabaseUrl } from "@/lib/supabase/env";
 
 /** ソト活1件の表示。heading（投稿者名やキャンプ場名）と actions（編集・削除）は呼び出し側で決める */
@@ -49,6 +58,18 @@ export function CheckinCard({
           <>
             <dt className="text-stone-500">虫</dt>
             <dd>{BUG_LEVEL[c.bug_level]}</dd>
+          </>
+        )}
+        {c.party_type && (
+          <>
+            <dt className="text-stone-500">同行</dt>
+            <dd>{PARTY_TYPE[c.party_type]}</dd>
+          </>
+        )}
+        {c.heaters && (
+          <>
+            <dt className="text-stone-500">暖房</dt>
+            <dd>{c.heaters.map((h) => HEATER[h]).join("・")}</dd>
           </>
         )}
       </dl>

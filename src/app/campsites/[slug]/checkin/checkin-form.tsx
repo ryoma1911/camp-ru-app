@@ -7,6 +7,8 @@ import {
   BUG_LEVEL,
   FIRE_STATUS,
   GROUND_TYPE,
+  HEATER,
+  PARTY_TYPE,
   PEG_NEEDED,
   SLEEP_QUALITY,
   type Checkin,
@@ -141,19 +143,11 @@ export function CheckinForm({ action, userId, initial, submitLabel = "ソト活�
         <Field label="虫">
           <Chips name="bug_level" options={BUG_LEVEL} defaultValue={str(initial?.bug_level)} />
         </Field>
-        <Field label="サイトに車を乗り入れできた？">
-          <Chips
-            name="car_access_ok"
-            options={{ yes: "できた", no: "できなかった" }}
-            defaultValue={yesNo(initial?.car_access_ok)}
-          />
+        <Field label="誰と行った？">
+          <Chips name="party_type" options={PARTY_TYPE} defaultValue={str(initial?.party_type)} />
         </Field>
-        <Field label="炊事場でお湯は出た？">
-          <Chips
-            name="hot_water_ok"
-            options={{ yes: "出た", no: "出なかった" }}
-            defaultValue={yesNo(initial?.hot_water_ok)}
-          />
+        <Field label="使った暖房（複数選べます）">
+          <HeaterChips defaultValues={initial?.heaters ?? []} />
         </Field>
         <Field label="ひとこと">
           <textarea
@@ -280,6 +274,34 @@ function Chips({
             value={value}
             required={required}
             defaultChecked={defaultValue === value}
+            className="peer sr-only"
+          />
+          <span className="inline-flex min-h-11 items-center rounded-full border border-stone-300 bg-white px-4 text-sm peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
+            {label}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** 使った暖房（複数）。「使わなかった」を選ぶとストーブの選択を外し、ストーブを選ぶと「使わなかった」を外す */
+function HeaterChips({ defaultValues }: { defaultValues: string[] }) {
+  const [selected, setSelected] = useState<string[]>(defaultValues);
+  function toggle(key: string, checked: boolean) {
+    if (!checked) return setSelected((prev) => prev.filter((k) => k !== key));
+    setSelected((prev) => (key === "none" ? ["none"] : [...prev.filter((k) => k !== "none"), key]));
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(HEATER).map(([value, label]) => (
+        <label key={value} className="cursor-pointer">
+          <input
+            type="checkbox"
+            name="heaters"
+            value={value}
+            checked={selected.includes(value)}
+            onChange={(e) => toggle(value, e.target.checked)}
             className="peer sr-only"
           />
           <span className="inline-flex min-h-11 items-center rounded-full border border-stone-300 bg-white px-4 text-sm peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
