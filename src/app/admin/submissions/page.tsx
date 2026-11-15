@@ -147,10 +147,14 @@ function Detail({
   status: Status;
   campsites: { slug: string; name: string; prefecture: string }[];
 }) {
-  const similar = campsites
-    .filter((c) => isSimilarName(s.name, c.name))
-    .sort((a, b) => Number(b.prefecture === s.prefecture) - Number(a.prefecture === s.prefecture))
-    .slice(0, 5);
+  // 重複の確認は確認待ちのときだけ（公開した申請では、承認で作ったキャンプ場そのものが「似ている」に出てしまう）
+  const isPending = s.status === "pending";
+  const similar = isPending
+    ? campsites
+        .filter((c) => isSimilarName(s.name, c.name))
+        .sort((a, b) => Number(b.prefecture === s.prefecture) - Number(a.prefecture === s.prefecture))
+        .slice(0, 5)
+    : [];
   const facilities = (Object.keys(FACILITY_LABEL) as (keyof typeof FACILITY_LABEL)[])
     .filter((k) => s[k])
     .map((k) => FACILITY_LABEL[k]);
@@ -198,26 +202,28 @@ function Detail({
         <dd className="whitespace-pre-wrap">{s.note ?? "なし"}</dd>
       </dl>
 
-      <div
-        className={`rounded-lg p-3 text-sm ${similar.length ? "border border-amber-300 bg-amber-50 text-amber-900" : "bg-stone-50 text-stone-600"}`}
-      >
-        <p className="font-medium">似ている登録済みのキャンプ場</p>
-        {similar.length === 0 ? (
-          <p>なし</p>
-        ) : (
-          <ul className="mt-1 space-y-0.5">
-            {similar.map((c) => (
-              <li key={c.slug}>
-                <Link href={`/campsites/${c.slug}`} target="_blank" className="underline">
-                  {c.name}（{c.prefecture}）
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {isPending && (
+        <div
+          className={`rounded-lg p-3 text-sm ${similar.length ? "border border-amber-300 bg-amber-50 text-amber-900" : "bg-stone-50 text-stone-600"}`}
+        >
+          <p className="font-medium">似ている登録済みのキャンプ場</p>
+          {similar.length === 0 ? (
+            <p>なし</p>
+          ) : (
+            <ul className="mt-1 space-y-0.5">
+              {similar.map((c) => (
+                <li key={c.slug}>
+                  <Link href={`/campsites/${c.slug}`} target="_blank" className="underline">
+                    {c.name}（{c.prefecture}）
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
-      {s.status === "pending" && (
+      {isPending && (
         <>
           <ApproveForm draft={s} action={approveSubmission.bind(null, s.id)} />
           <form action={rejectSubmission.bind(null, s.id)} className="space-y-3 rounded-xl border border-stone-200 p-4">
