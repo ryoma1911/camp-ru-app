@@ -2,11 +2,12 @@
 
 import { useActionState, useState } from "react";
 import { splitPrefecture } from "@/lib/address";
-import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
+import { FacilityFields } from "@/components/facility-fields";
+import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Facilities } from "@/lib/labels";
 import { PREFECTURES } from "@/lib/search";
 import type { ApproveState } from "./actions";
 
-export type SubmissionDraft = {
+export type SubmissionDraft = Facilities & {
   name: string;
   prefecture: string;
   address: string;
@@ -125,6 +126,7 @@ export function ApproveForm({
           ))}
         </div>
       </fieldset>
+      <FacilityFields initial={draft} unknownLabel="未入力" />
       <Label text="運営のメモ">
         <input name="admin_note" maxLength={500} className={input} />
       </Label>

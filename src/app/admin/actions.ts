@@ -2,6 +2,7 @@
 
 import { refresh, updateTag } from "next/cache";
 import { CAMPSITE_IMAGES_TAG, CAMPSITE_IMAGE_BUCKET, MAX_CAMPSITE_IMAGES } from "@/lib/campsite-images";
+import { parseFacilities } from "@/lib/facility-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // どの操作も DB の RLS で「運営だけ」に制限している。ここでも先に確かめて、わかりやすいエラーにする
@@ -141,4 +142,35 @@ export async function deleteImage(imageId: string) {
     if (removeError) console.error("campsite image file remove failed", removeError);
   }
   changed();
+}
+
+export type FacilitiesState = { error: string | null; saved: boolean };
+
+/** キャンプ場の設備を直す（運営だけ。DB でも設備の列しか更新できないようにしている） */
+export async function updateFacilities(
+  campsiteId: string,
+  _prev: FacilitiesState,
+  formData: FormData,
+): Promise<FacilitiesState> {
+  const supabase = await adminClient();
+  const parsed = parseFacilities(formData);
+  if (!parsed.ok) return { error: parsed.error, saved: false };
+
+  const { error } = await supabase
+    .from("campsites")
+    .update({
+      car_access: formData.get("car_access") === "yes",
+      has_hot_water: formData.get("has_hot_water") === "yes",
+      has_shower: formData.get("has_shower") === "yes",
+      has_bath: formData.get("has_bath") === "yes",
+      ...parsed.values,
+    })
+    .eq("id", campsiteId);
+  if (error) {
+    console.error("update facilities failed", error);
+    return { error: `保存に失敗しました：${error.message}`, saved: false };
+  }
+  // キャンプ場ページ・一覧に、すぐ反映する
+  updateTag("campsites");
+  return { error: null, saved: true };
 }

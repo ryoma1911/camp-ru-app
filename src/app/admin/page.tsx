@@ -52,7 +52,7 @@ async function AdminContent() {
       </Link>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold">キャンプ場の写真</h2>
+        <h2 className="text-lg font-bold">キャンプ場の写真・設備</h2>
         <p className="text-sm text-stone-600">
           写真は「自分で撮った写真」か「投稿者が許可したソト活の写真」だけを使います。
         </p>
@@ -61,23 +61,28 @@ async function AdminContent() {
             const count = imageCount.get(c.id) ?? 0;
             const candidates = candidateCount.get(c.id) ?? 0;
             return (
-              <li key={c.id}>
+              <li key={c.id} className="flex items-center gap-2 p-2 pl-4">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{c.name}</span>
+                  <span className="text-xs text-stone-500">{c.prefecture}</span>
+                </span>
                 <Link
                   href={`/admin/campsites/${c.slug}/images`}
-                  className="flex items-center justify-between gap-3 p-4 hover:bg-stone-50"
+                  className="shrink-0 rounded-lg px-3 py-2 text-right text-sm hover:bg-stone-50"
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{c.name}</span>
-                    <span className="text-xs text-stone-500">{c.prefecture}</span>
+                  <span className="text-xs text-stone-500">写真 </span>
+                  <span className={count === 0 ? "text-stone-400" : "font-bold"}>
+                    {count} / {MAX_CAMPSITE_IMAGES}枚
                   </span>
-                  <span className="shrink-0 text-right text-sm">
-                    <span className={count === 0 ? "text-stone-400" : "font-bold"}>
-                      {count} / {MAX_CAMPSITE_IMAGES}枚
-                    </span>
-                    {candidates > 0 && (
-                      <span className="block text-xs text-amber-800">採用できるソト活写真 {candidates}枚</span>
-                    )}
-                  </span>
+                  {candidates > 0 && (
+                    <span className="block text-xs text-amber-800">採用できるソト活写真 {candidates}枚</span>
+                  )}
+                </Link>
+                <Link
+                  href={`/admin/campsites/${c.slug}/edit`}
+                  className="shrink-0 rounded-full border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50"
+                >
+                  設備
                 </Link>
               </li>
             );

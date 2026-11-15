@@ -1,6 +1,7 @@
 import "server-only";
 import { joinAddress } from "@/lib/address";
-import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
+import { parseFacilities } from "@/lib/facility-input";
+import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Facilities } from "@/lib/labels";
 import { normalizePostal } from "@/lib/postal";
 import { PREFECTURES } from "@/lib/search";
 
@@ -13,7 +14,7 @@ export const SUBMISSION_FACILITIES = {
   has_bath: "風呂",
 } as const;
 
-export type SubmissionFields = {
+export type SubmissionFields = Facilities & {
   name: string;
   prefecture: string;
   address: string;
@@ -71,6 +72,9 @@ export function parseSubmissionForm(
 
   // 設備はチェックしたものだけ「あり」。チェックしていないものは「わからない」として運営が確認する
   const facility = (key: keyof typeof SUBMISSION_FACILITIES) => (formData.get(key) === "yes" ? true : null);
+  // 追加の6項目（あり・なし・わからない、複数選べる項目）
+  const facilities = parseFacilities(formData);
+  if (!facilities.ok) return { ok: false, error: facilities.error };
 
   return {
     ok: true,
@@ -87,6 +91,7 @@ export function parseSubmissionForm(
       has_hot_water: facility("has_hot_water"),
       has_shower: facility("has_shower"),
       has_bath: facility("has_bath"),
+      ...facilities.values,
       note: note || null,
     },
   };

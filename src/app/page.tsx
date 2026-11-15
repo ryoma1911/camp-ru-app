@@ -83,7 +83,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
         {hero}
         <CampsiteShelf
           title="おすすめのキャンプ場"
-          note={recommended.hasAuto ? `${month}月に行く人に人気` : `${SITE_NAME}のおすすめ`}
+          note={recommended.hasAuto ? `${month}月に行く人に人気` : `${SITE_NAME}からのおすすめ`}
           moreHref={toQuery({ sort: "recommend" })}
           month={month}
           items={recommended.items.map((c) => ({ campsite: c, summary: summaries[c.id], cover: covers[c.id] }))}

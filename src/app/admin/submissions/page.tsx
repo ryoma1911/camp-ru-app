@@ -4,7 +4,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { requireAdmin } from "@/lib/admin";
 import { isSimilarName } from "@/lib/campsite-match";
 import { getCampsites } from "@/lib/campsites";
-import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
+import { AC_POWER, FIRE_RULE, GARBAGE, LOCATION_TYPE, PAYMENT, SHOP_ITEM, SITE_STYLE } from "@/lib/labels";
 import { rejectSubmission, approveSubmission } from "./actions";
 import { ApproveForm, type SubmissionDraft } from "./approve-form";
 
@@ -29,6 +29,10 @@ type Submission = SubmissionDraft & {
   profiles: { display_name: string } | null;
   campsites: { slug: string; name: string } | null;
 };
+
+const yesNo = (v: boolean | null) => (v === true ? "あり" : v === false ? "なし" : "わからない");
+const list = <T extends string>(values: T[] | null, labels: Record<T, string>) =>
+  values ? values.map((v) => labels[v]).join("・") : "わからない";
 
 const date = (iso: string) =>
   new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).format(new Date(iso));
@@ -198,6 +202,21 @@ function Detail({
         </dd>
         <dt className="text-stone-500">設備（あり）</dt>
         <dd>{facilities.length ? facilities.join("・") : "なし（わからない）"}</dd>
+        <dt className="text-stone-500">炊事場・Wi-Fi</dt>
+        <dd>
+          炊事場 {yesNo(s.has_kitchen)}・Wi-Fi {yesNo(s.has_wifi)}
+        </dd>
+        <dt className="text-stone-500">ゴミ</dt>
+        <dd>{list(s.garbage, GARBAGE)}</dd>
+        <dt className="text-stone-500">AC電源</dt>
+        <dd>{list(s.ac_power, AC_POWER)}</dd>
+        <dt className="text-stone-500">売店</dt>
+        <dd>
+          {yesNo(s.has_shop)}
+          {s.shop_items && `：${list(s.shop_items, SHOP_ITEM)}`}
+        </dd>
+        <dt className="text-stone-500">決済方法</dt>
+        <dd>{list(s.payment_methods, PAYMENT)}</dd>
         <dt className="text-stone-500">ひとこと</dt>
         <dd className="whitespace-pre-wrap">{s.note ?? "なし"}</dd>
       </dl>

@@ -19,6 +19,15 @@
 | has_bath | 風呂があるか `true` / `false` | `true` |
 | fire_rule | `open_fire_ok`（直火OK）/ `stand_required`（焚き火台が必要）/ `prohibited`（禁止） | `stand_required` |
 | official_url | 公式サイトのURL | `https://...` |
+| has_kitchen | 炊事場があるか `true` / `false`。わからなければ空欄 | `true` |
+| garbage | ゴミ：`paid`（有料）/ `free`（無料）/ `take_home`（持ち帰り）。複数は `"{paid,take_home}"` のように書く。空欄可 | `"{paid,take_home}"` |
+| ac_power | AC電源：`extra_fee`（設置サイトあり・別料金）/ `included`（設置サイトあり・料金に含む）/ `none`（なし）。`none` はほかと一緒に書けない。空欄可 | `{extra_fee}` |
+| has_shop | 売店があるか `true` / `false`。空欄可 | `true` |
+| shop_items | 売店で買えるもの：`gas` / `firewood`（薪）/ `charcoal`（炭）/ `towel` / `meal_kit` / `toothbrush` / `other`。has_shop が `true` のときだけ。空欄可 | `"{gas,firewood,charcoal}"` |
+| has_wifi | Wi-Fi があるか `true` / `false`。空欄可 | `false` |
+| payment_methods | 決済方法：`cash`（現金）/ `card`（カード）。空欄可 | `"{cash,card}"` |
+
+has_kitchen から payment_methods までの7列は、あとから足した設備の列です。空欄にすると「未入力」になり、キャンプ場ページでは空欄で表示されます。古いテンプレート（この7列がない CSV）もそのまま取り込めます。複数の値を書くときは、`,` を含むので `"{paid,take_home}"` のようにダブルクォートで囲みます。取り込んだあとは、運営用の管理画面（`/admin` → キャンプ場の「設備」）でも直せます。
 
 例の値は書き方の説明用です。実際の値は必ず公式サイトで確認してください。
 

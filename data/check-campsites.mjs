@@ -8,10 +8,23 @@ const ENUMS = {
   fire_rule: ["open_fire_ok", "stand_required", "prohibited"],
 };
 const BOOLS = ["car_access", "has_hot_water", "has_shower", "has_bath"];
+// 追加の設備（空欄 = 未入力）。true / false か、{a,b} の形で複数の値
+const OPTIONAL_BOOLS = ["has_kitchen", "has_shop", "has_wifi"];
+const ARRAYS = {
+  garbage: ["paid", "free", "take_home"],
+  ac_power: ["extra_fee", "included", "none"],
+  shop_items: ["gas", "firewood", "charcoal", "towel", "meal_kit", "toothbrush", "other"],
+  payment_methods: ["cash", "card"],
+};
 const REQUIRED = ["slug", "name", "prefecture", "address", "location_type", "site_style", "fire_rule"];
 const HEADER = [
   "slug", "name", "prefecture", "address", "lat", "lng", "location_type", "site_style",
   "car_access", "has_hot_water", "has_shower", "has_bath", "fire_rule", "official_url",
+];
+// 設備の列を足した新しいテンプレート（古いテンプレートの CSV もそのまま使える）
+const HEADER_FULL = [
+  ...HEADER,
+  "has_kitchen", "garbage", "ac_power", "has_shop", "shop_items", "has_wifi", "payment_methods",
 ];
 
 function parseCsv(text) {
@@ -45,8 +58,8 @@ if (!file) {
 
 const [header, ...rows] = parseCsv(readFileSync(file, "utf8").replace(/^﻿/, ""));
 const errors = [];
-if (header.join(",") !== HEADER.join(",")) {
-  errors.push(`1行目の見出しがテンプレートと違います\n    期待: ${HEADER.join(",")}\n    実際: ${header.join(",")}`);
+if (header.join(",") !== HEADER.join(",") && header.join(",") !== HEADER_FULL.join(",")) {
+  errors.push(`1行目の見出しがテンプレートと違います\n    期待: ${HEADER_FULL.join(",")}\n    実際: ${header.join(",")}`);
 }
 
 const slugs = new Set();
@@ -67,6 +80,20 @@ rows.forEach((cells, i) => {
   for (const k of BOOLS) {
     if (r[k] && !["true", "false"].includes(r[k])) err(`${k} は true / false: "${r[k]}"`);
   }
+  for (const k of OPTIONAL_BOOLS) {
+    if (r[k] && !["true", "false"].includes(r[k])) err(`${k} は true / false か空欄: "${r[k]}"`);
+  }
+  for (const [k, allowed] of Object.entries(ARRAYS)) {
+    if (!r[k]) continue;
+    const m = /^\{([a-z_,]+)\}$/.exec(r[k]);
+    const values = m ? m[1].split(",") : [];
+    if (!m || values.some((v) => !allowed.includes(v)) || new Set(values).size !== values.length) {
+      err(`${k} は {${allowed.join(",")}} から選んで {a,b} の形で書く（重複なし）: "${r[k]}"`);
+    } else if (k === "ac_power" && values.includes("none") && values.length > 1) {
+      err(`ac_power の none はほかと一緒に書けません: "${r[k]}"`);
+    }
+  }
+  if (r.shop_items && r.has_shop !== "true") err("shop_items は has_shop が true のときだけ書けます");
   for (const [k, lo, hi] of [["lat", 20, 46], ["lng", 122, 154]]) {
     if (r[k] && !(Number(r[k]) >= lo && Number(r[k]) <= hi)) err(`${k} が日本の範囲外か数字ではありません: "${r[k]}"`);
   }

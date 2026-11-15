@@ -3,6 +3,7 @@
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { joinAddress } from "@/lib/address";
+import { parseFacilities } from "@/lib/facility-input";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 import { PREFECTURES } from "@/lib/search";
 import { generateSlug } from "@/lib/slug";
@@ -57,6 +58,9 @@ export async function approveSubmission(id: string, _prev: ApproveState, formDat
   if (officialUrl === undefined) return { error: "公式サイトのURLが正しくありません。" };
   if (lat === undefined || lng === undefined) return { error: "緯度・経度が日本の範囲外か、数字ではありません。" };
   if ((lat == null) !== (lng == null)) return { error: "緯度と経度は両方入れるか、両方空にしてください。" };
+  const facilities = parseFacilities(formData);
+  if (!facilities.ok) return { error: facilities.error };
+  const f = facilities.values;
 
   // 作った slug がたまたま使われていたら（31文字×6桁なので、まず起きない）作り直す
   let campsiteId: string | null = null;
@@ -77,6 +81,13 @@ export async function approveSubmission(id: string, _prev: ApproveState, formDat
       p_has_hot_water: formData.get("has_hot_water") === "yes",
       p_has_shower: formData.get("has_shower") === "yes",
       p_has_bath: formData.get("has_bath") === "yes",
+      p_has_kitchen: f.has_kitchen,
+      p_garbage: f.garbage,
+      p_ac_power: f.ac_power,
+      p_has_shop: f.has_shop,
+      p_shop_items: f.shop_items,
+      p_has_wifi: f.has_wifi,
+      p_payment_methods: f.payment_methods,
       p_official_url: officialUrl,
       p_admin_note: adminNote,
     });

@@ -55,7 +55,49 @@ export const BUG_LEVEL = {
   3: "虫が多い",
 } as const;
 
-export type Campsite = {
+// 設備（複数選べる項目）。DB の domain（garbage_options など）と揃えること
+export const GARBAGE = {
+  paid: "有料",
+  free: "無料",
+  take_home: "持ち帰り",
+} as const;
+
+export const AC_POWER = {
+  extra_fee: "設置サイトあり（別料金）",
+  included: "設置サイトあり（料金に含む）",
+  none: "なし",
+} as const;
+
+export const SHOP_ITEM = {
+  gas: "ガス",
+  firewood: "薪",
+  charcoal: "炭",
+  towel: "タオル",
+  meal_kit: "ミールキット",
+  toothbrush: "歯ブラシ",
+  other: "その他",
+} as const;
+
+export const PAYMENT = {
+  cash: "現金",
+  card: "カード",
+} as const;
+
+/** 追加の設備6項目。どれも null =「未入力」（画面では空欄） */
+export type Facilities = {
+  has_kitchen: boolean | null;
+  garbage: (keyof typeof GARBAGE)[] | null;
+  ac_power: (keyof typeof AC_POWER)[] | null;
+  has_shop: boolean | null;
+  /** 売店で買えるもの（売店ありのときだけ） */
+  shop_items: (keyof typeof SHOP_ITEM)[] | null;
+  has_wifi: boolean | null;
+  payment_methods: (keyof typeof PAYMENT)[] | null;
+};
+
+export const FACILITY_COLUMNS = "has_kitchen, garbage, ac_power, has_shop, shop_items, has_wifi, payment_methods";
+
+export type Campsite = Facilities & {
   id: string;
   slug: string;
   name: string;

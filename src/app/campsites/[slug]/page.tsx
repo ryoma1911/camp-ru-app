@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Tag } from "@/components/tag";
 import { getCampsite, getCampsites, getRecentCheckins } from "@/lib/campsites";
+import { CampsiteFacilities } from "@/components/campsite-facilities";
 import { CampsiteGallery } from "@/components/campsite-gallery";
 import { CampsiteStats } from "@/components/campsite-stats";
 import { CheckinCard } from "@/components/checkin-card";
@@ -60,10 +61,6 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
           <Tag>{LOCATION_TYPE[campsite.location_type]}</Tag>
           <Tag>{SITE_STYLE[campsite.site_style]}</Tag>
           <Tag>{FIRE_RULE[campsite.fire_rule]}</Tag>
-          {campsite.car_access && <Tag>車乗り入れ可</Tag>}
-          {campsite.has_hot_water && <Tag>炊事場お湯</Tag>}
-          {campsite.has_shower && <Tag>シャワー</Tag>}
-          {campsite.has_bath && <Tag>風呂</Tag>}
         </div>
         <p className="text-sm text-stone-600">
           {campsite.address}
@@ -91,6 +88,8 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
       <Suspense fallback={<p className="text-sm text-stone-500">集計中…</p>}>
         <StatsSection campsiteId={campsite.id} />
       </Suspense>
+
+      <CampsiteFacilities campsite={campsite} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-bold">みんなのソト活</h2>

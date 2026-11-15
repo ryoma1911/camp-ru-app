@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useMemo, useState, useTransition } from "react";
 import { splitPrefecture } from "@/lib/address";
 import { isSimilarName } from "@/lib/campsite-match";
+import { FacilityFields } from "@/components/facility-fields";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
 import { PREFECTURES } from "@/lib/search";
 import { findAddressByPostal, submitCampsite, type SubmissionFormState } from "./actions";
@@ -284,6 +285,7 @@ function SubmissionForm({
             ))}
           </div>
         </Field>
+        <FacilityFields unknownLabel="わからない" />
         <Field label="運営へのひとこと">
           <textarea
             name="note"
