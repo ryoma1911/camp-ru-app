@@ -5,6 +5,7 @@ import {
   HEATER,
   PARTY_TYPE,
   PEG_NEEDED,
+  SLEEPING_BAG_TYPE,
   SLEEP_QUALITY,
   type Checkin,
 } from "@/lib/labels";
@@ -42,7 +43,7 @@ export function CheckinCard({
           {temp ?? "記録なし"}
           {c.sleep_quality && (
             <span className="ml-2 text-stone-600">
-              {c.sleeping_bag_comfort_c != null && `快適${c.sleeping_bag_comfort_c}℃の寝袋で`}
+              {c.sleeping_bag_type && `${SLEEPING_BAG_TYPE[c.sleeping_bag_type]}の寝袋で`}
               {SLEEP_QUALITY[c.sleep_quality]}
             </span>
           )}

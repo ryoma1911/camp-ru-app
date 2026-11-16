@@ -44,6 +44,22 @@ export const FIRE_STATUS = {
   prohibited: "ルールで禁止",
 } as const;
 
+/** 使った寝袋のタイプ。DB の enum sleeping_bag_type と揃えること（未選択 =「わからない」） */
+export const SLEEPING_BAG_TYPE = {
+  summer: "夏用",
+  three_season: "3シーズン用",
+  winter: "冬用",
+  extreme: "厳冬期用",
+} as const;
+
+/** 選ぶときの目安（寝袋の快適温度） */
+export const SLEEPING_BAG_HINT: Record<keyof typeof SLEEPING_BAG_TYPE, string> = {
+  summer: "快適温度 10℃〜",
+  three_season: "0〜10℃",
+  winter: "-10〜0℃",
+  extreme: "〜-10℃",
+};
+
 export const SLEEP_QUALITY = {
   comfortable: "快適に眠れた",
   cold: "寒かった",
@@ -129,6 +145,8 @@ export type Campsite = Facilities & {
   has_bath: boolean;
   fire_rule: keyof typeof FIRE_RULE;
   official_url: string | null;
+  /** Googleマップの Place ID。null = 未登録（地図リンクは座標で開く） */
+  google_place_id: string | null;
   /** 数字があれば「おすすめ」。小さいほど先に表示する */
   featured_rank: number | null;
   created_at: string;
@@ -142,7 +160,8 @@ export type Checkin = {
   min_temp_c: number | null;
   temp_measured: boolean;
   temp_at_dawn: boolean;
-  sleeping_bag_comfort_c: number | null;
+  /** 快適温度（sleeping_bag_comfort_c）はタイプに移したので使わない */
+  sleeping_bag_type: keyof typeof SLEEPING_BAG_TYPE | null;
   sleep_quality: keyof typeof SLEEP_QUALITY | null;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;

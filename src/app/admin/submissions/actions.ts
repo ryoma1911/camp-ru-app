@@ -9,6 +9,7 @@ import { PREFECTURES } from "@/lib/search";
 import { generateSlug } from "@/lib/slug";
 import { parseUrl } from "@/lib/submission-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PLACE_ID_ERROR, parsePlaceId } from "@/lib/place-id";
 
 export type ApproveState = { error: string | null };
 
@@ -56,6 +57,8 @@ export async function approveSubmission(id: string, _prev: ApproveState, formDat
     return { error: "種類・サイト・焚き火を選んでください（公開には必須です）。" };
   }
   if (officialUrl === undefined) return { error: "公式サイトのURLが正しくありません。" };
+  const placeId = parsePlaceId(formData.get("google_place_id"));
+  if (placeId === undefined) return { error: PLACE_ID_ERROR };
   if (lat === undefined || lng === undefined) return { error: "緯度・経度が日本の範囲外か、数字ではありません。" };
   if ((lat == null) !== (lng == null)) return { error: "緯度と経度は両方入れるか、両方空にしてください。" };
   const facilities = parseFacilities(formData);
@@ -89,6 +92,7 @@ export async function approveSubmission(id: string, _prev: ApproveState, formDat
       p_has_wifi: f.has_wifi,
       p_payment_methods: f.payment_methods,
       p_official_url: officialUrl,
+      p_google_place_id: placeId,
       p_admin_note: adminNote,
     });
     campsiteId = result.data;

@@ -26,6 +26,9 @@ const HEADER_FULL = [
   ...HEADER,
   "has_kitchen", "garbage", "ac_power", "has_shop", "shop_items", "has_wifi", "payment_methods",
 ];
+// Googleマップの Place ID の列を足した最新のテンプレート
+const HEADER_LATEST = [...HEADER_FULL, "google_place_id"];
+const HEADERS = [HEADER, HEADER_FULL, HEADER_LATEST].map((h) => h.join(","));
 
 function parseCsv(text) {
   const rows = [];
@@ -58,8 +61,8 @@ if (!file) {
 
 const [header, ...rows] = parseCsv(readFileSync(file, "utf8").replace(/^﻿/, ""));
 const errors = [];
-if (header.join(",") !== HEADER.join(",") && header.join(",") !== HEADER_FULL.join(",")) {
-  errors.push(`1行目の見出しがテンプレートと違います\n    期待: ${HEADER_FULL.join(",")}\n    実際: ${header.join(",")}`);
+if (!HEADERS.includes(header.join(","))) {
+  errors.push(`1行目の見出しがテンプレートと違います\n    期待: ${HEADER_LATEST.join(",")}\n    実際: ${header.join(",")}`);
 }
 
 const slugs = new Set();
@@ -98,6 +101,9 @@ rows.forEach((cells, i) => {
     if (r[k] && !(Number(r[k]) >= lo && Number(r[k]) <= hi)) err(`${k} が日本の範囲外か数字ではありません: "${r[k]}"`);
   }
   if (r.official_url && !/^https?:\/\//.test(r.official_url)) err(`official_url は http で始めてください: "${r.official_url}"`);
+  if (r.google_place_id && !/^[A-Za-z0-9_-]{10,300}$/.test(r.google_place_id)) {
+    err(`google_place_id の形が正しくありません（「ChIJ」から始まる英数字）: "${r.google_place_id}"`);
+  }
 });
 
 if (errors.length) {

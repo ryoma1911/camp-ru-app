@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { getCampsite, getCampsites } from "@/lib/campsites";
 import { FacilitiesForm } from "./facilities-form";
 
-export const metadata = { title: "キャンプ場の設備の編集", robots: { index: false } };
+export const metadata = { title: "キャンプ場の設備・地図の編集", robots: { index: false } };
 
 export async function generateStaticParams() {
   const campsites = await getCampsites();
@@ -35,7 +35,7 @@ async function AdminFacilitiesContent({ params }: Pick<Props, "params">) {
         <Link href="/admin" className="text-sm text-emerald-700 underline">
           ← 管理
         </Link>
-        <h1 className="mt-2 text-2xl font-bold">{campsite.name}の設備</h1>
+        <h1 className="mt-2 text-2xl font-bold">{campsite.name}の設備・地図</h1>
         <p className="mt-1 text-sm text-stone-600">
           公式サイトで確認できたものを入れてください。わからない項目は「未入力」のままにすると、キャンプ場ページでは空欄になります。
           {campsite.official_url && (

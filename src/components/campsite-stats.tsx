@@ -1,5 +1,5 @@
-import { BUG_BARS, type Breakdown, type CampsiteStats as Stats, type MonthStat, type SleepStat } from "@/lib/campsite-stats";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED } from "@/lib/labels";
+import { BUG_BARS, type Breakdown, type CampsiteStats as Stats, type MonthStat } from "@/lib/campsite-stats";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
 
 // 0℃を境に、寒い側＝青・暖かい側＝オレンジ（色覚の違いがあっても区別できる組み合わせを検証済み）
 const COLD = "#0369a1";
@@ -34,12 +34,6 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
         <MonthlyTempChart months={stats.months} />
       </Card>
 
-      {stats.sleep.length > 0 && (
-        <Card title="① 寝袋の目安" note="その寝袋で快適に眠れた人の割合">
-          <SleepTable sleep={stats.sleep} />
-        </Card>
-      )}
-
       <div className="grid gap-3 sm:grid-cols-2">
         <Card title="② 地面の固さ" note="必要だったペグ">
           <MeterList items={stats.peg} labels={PEG_NEEDED} total={stats.total} />
@@ -49,8 +43,11 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
         </Card>
       </div>
 
-      {/* 任意の項目は、記録した投稿の数を分母にする（暖房は複数選べるので合計が100%を超えることがある） */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/* 任意の項目は、記録した投稿の数を分母にする（「わからない」は数えない。暖房は複数選べるので合計が100%を超えることがある） */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card title="寝袋" note={recorded(stats.bag.total)}>
+          <MeterList items={stats.bag.items} labels={SLEEPING_BAG_TYPE} total={stats.bag.total} />
+        </Card>
         <Card title="虫" note={recorded(stats.bug.total)}>
           <MeterList items={stats.bug.items} labels={BUG_BARS} total={stats.bug.total} />
         </Card>
@@ -200,38 +197,6 @@ function MonthlyTempChart({ months }: { months: MonthStat[] }) {
         </tbody>
       </table>
     </figure>
-  );
-}
-
-/* ---------- 寝袋の目安 ---------- */
-
-function SleepTable({ sleep }: { sleep: SleepStat[] }) {
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-stone-200 text-left text-xs text-stone-500">
-          <th className="py-1.5 font-medium">月</th>
-          <th className="py-1.5 font-medium">寝袋の快適温度</th>
-          <th className="py-1.5 text-right font-medium">快適に眠れた</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sleep.map((s) => (
-          <tr key={`${s.month}:${s.bagBand}`} className="border-b border-stone-100 last:border-0">
-            <td className="py-1.5">{s.month}月</td>
-            <td className="py-1.5">
-              {s.bagBand}〜{s.bagBand + 4}℃
-            </td>
-            <td className="py-1.5 text-right">
-              <span className="font-medium">{pct(s.comfortable, s.count)}%</span>
-              <span className="ml-1 text-xs text-stone-500">
-                （{s.count}件中{s.comfortable}件）
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 

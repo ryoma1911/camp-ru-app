@@ -26,8 +26,9 @@
 | shop_items | 売店で買えるもの：`gas` / `firewood`（薪）/ `charcoal`（炭）/ `towel` / `meal_kit` / `toothbrush` / `other`。has_shop が `true` のときだけ。空欄可 | `"{gas,firewood,charcoal}"` |
 | has_wifi | Wi-Fi があるか `true` / `false`。空欄可 | `false` |
 | payment_methods | 決済方法：`cash`（現金）/ `card`（カード）。空欄可 | `"{cash,card}"` |
+| google_place_id | Googleマップの Place ID。入れると地図リンクが施設名で開く。Googleマップに登録がなければ空欄（座標で開く） | `ChIJN1t_tDeuEmsRUsoyG83frY4` |
 
-has_kitchen から payment_methods までの7列は、あとから足した設備の列です。空欄にすると「未入力」になり、キャンプ場ページでは空欄で表示されます。古いテンプレート（この7列がない CSV）もそのまま取り込めます。複数の値を書くときは、`,` を含むので `"{paid,take_home}"` のようにダブルクォートで囲みます。取り込んだあとは、運営用の管理画面（`/admin` → キャンプ場の「設備」）でも直せます。
+has_kitchen から payment_methods までの7列は、あとから足した設備の列です。空欄にすると「未入力」になり、キャンプ場ページでは空欄で表示されます。古いテンプレート（この7列や google_place_id の列がない CSV）もそのまま取り込めます。Place ID は Google の「Place ID Finder」で調べられます。複数の値を書くときは、`,` を含むので `"{paid,take_home}"` のようにダブルクォートで囲みます。取り込んだあとは、運営用の管理画面（`/admin` → キャンプ場の「設備・地図」）でも直せます。
 
 例の値は書き方の説明用です。実際の値は必ず公式サイトで確認してください。
 

@@ -1,14 +1,13 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 type Row = {
   visited_on: string;
   min_temp_c: number | null;
-  sleeping_bag_comfort_c: number | null;
-  sleep_quality: keyof typeof SLEEP_QUALITY | null;
+  sleeping_bag_type: keyof typeof SLEEPING_BAG_TYPE | null;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: number | null;
@@ -30,13 +29,6 @@ export type MonthStat = {
   coldest: number | null;
 };
 
-export type SleepStat = {
-  month: number;
-  bagBand: number; // 寝袋の快適温度を5℃刻みにした下限（例: -5 → -5〜-1℃）
-  count: number;
-  comfortable: number;
-};
-
 export type CampsiteStats = {
   total: number;
   peg: Breakdown<keyof typeof PEG_NEEDED>;
@@ -47,8 +39,9 @@ export type CampsiteStats = {
   party: { items: Breakdown<keyof typeof PARTY_TYPE>; total: number };
   /** 使った暖房（1件の投稿で複数あれば、それぞれ数える）。total は記録した投稿の数 */
   heaters: { items: Breakdown<keyof typeof HEATER>; total: number };
+  /** 使った寝袋のタイプ。「わからない」（null）は数えない。total は記録した投稿の数 */
+  bag: { items: Breakdown<keyof typeof SLEEPING_BAG_TYPE>; total: number };
   months: MonthStat[];
-  sleep: SleepStat[];
 };
 
 function breakdown<K extends string>(labels: Record<K, string>, values: K[]): Breakdown<K> {
@@ -150,7 +143,7 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
   const { data, error } = await supabase
     .from("checkins")
     .select(
-      "visited_on, min_temp_c, sleeping_bag_comfort_c, sleep_quality, peg_needed, fire_status, bug_level, party_type, heaters",
+      "visited_on, min_temp_c, sleeping_bag_type, peg_needed, fire_status, bug_level, party_type, heaters",
     )
     .eq("campsite_id", campsiteId);
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
@@ -168,21 +161,10 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
     };
   });
 
-  const sleepMap = new Map<string, SleepStat>();
-  for (const r of rows) {
-    if (r.sleeping_bag_comfort_c == null || !r.sleep_quality) continue;
-    const month = Number(r.visited_on.slice(5, 7));
-    const bagBand = Math.floor(r.sleeping_bag_comfort_c / 5) * 5;
-    const key = `${month}:${bagBand}`;
-    const s = sleepMap.get(key) ?? { month, bagBand, count: 0, comfortable: 0 };
-    s.count++;
-    if (r.sleep_quality === "comfortable") s.comfortable++;
-    sleepMap.set(key, s);
-  }
-
   const bugs = rows.flatMap((r) => (r.bug_level != null ? [String(r.bug_level) as keyof typeof BUG_BARS] : []));
   const parties = rows.flatMap((r) => (r.party_type ? [r.party_type] : []));
   const heaterRows = rows.filter((r) => r.heaters?.length);
+  const bags = rows.flatMap((r) => (r.sleeping_bag_type ? [r.sleeping_bag_type] : []));
 
   return {
     total: rows.length,
@@ -191,7 +173,7 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
     bug: { items: breakdown(BUG_BARS, bugs), total: bugs.length },
     party: { items: breakdown(PARTY_TYPE, parties), total: parties.length },
     heaters: { items: breakdown(HEATER, heaterRows.flatMap((r) => r.heaters ?? [])), total: heaterRows.length },
+    bag: { items: breakdown(SLEEPING_BAG_TYPE, bags), total: bags.length },
     months,
-    sleep: [...sleepMap.values()].sort((a, b) => a.month - b.month || a.bagBand - b.bagBand),
   };
 }

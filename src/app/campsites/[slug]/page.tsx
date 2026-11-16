@@ -10,6 +10,7 @@ import { CheckinRow } from "@/components/checkin-card";
 import { getCampsiteImages } from "@/lib/campsite-images";
 import { getCampsiteStats } from "@/lib/campsite-stats";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
+import { mapUrl } from "@/lib/place-id";
 
 export async function generateStaticParams() {
   const campsites = await getCampsites();
@@ -39,10 +40,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
   if (!campsite) notFound();
   const images = await getCampsiteImages(campsite.id);
 
-  const mapUrl =
-    campsite.lat != null && campsite.lng != null
-      ? `https://www.google.com/maps/search/?api=1&query=${campsite.lat},${campsite.lng}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(campsite.address)}`;
+  const mapHref = mapUrl(campsite);
 
   return (
     <div className="space-y-8">
@@ -63,7 +61,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
         <p className="text-sm text-stone-600">
           {campsite.address}
           {" ・ "}
-          <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline">
+          <a href={mapHref} target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline">
             地図
           </a>
           {campsite.official_url && (

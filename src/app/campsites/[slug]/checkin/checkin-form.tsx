@@ -9,6 +9,8 @@ import {
   HEATER,
   PARTY_TYPE,
   PEG_NEEDED,
+  SLEEPING_BAG_HINT,
+  SLEEPING_BAG_TYPE,
   SLEEP_QUALITY,
   type Checkin,
 } from "@/lib/labels";
@@ -26,7 +28,6 @@ type Props = {
 
 // 気温は iPhone のテンキーでマイナスが打てないため、選択式にする
 const TEMPS = Array.from({ length: 51 }, (_, i) => 25 - i); // 25 〜 -25
-const BAG_TEMPS = Array.from({ length: 36 }, (_, i) => 15 - i); // 15 〜 -20
 
 function todayInJapan() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
@@ -104,19 +105,13 @@ export function CheckinForm({ action, userId, initial, submitLabel = "ソト活�
             defaultValue={yesNo(initial?.temp_at_dawn) ?? "yes"}
           />
         </Field>
-        <Field label="寝袋の快適温度" hint="わかれば。寝袋のタグに書いてあります">
-          <select
-            name="sleeping_bag_comfort_c"
-            defaultValue={str(initial?.sleeping_bag_comfort_c) ?? ""}
-            className="h-11 rounded-lg border border-stone-300 bg-white px-3"
-          >
-            <option value="">わからない</option>
-            {BAG_TEMPS.map((t) => (
-              <option key={t} value={t}>
-                {t}℃
-              </option>
-            ))}
-          </select>
+        <Field label="使った寝袋" hint="目安は寝袋のタグにある快適温度">
+          <Chips
+            name="sleeping_bag_type"
+            options={{ ...SLEEPING_BAG_TYPE, "": "わからない" }}
+            hints={SLEEPING_BAG_HINT}
+            defaultValue={initial?.sleeping_bag_type ?? ""}
+          />
         </Field>
         <Field label="眠れた？">
           <Chips name="sleep_quality" options={SLEEP_QUALITY} defaultValue={str(initial?.sleep_quality)} />
@@ -254,11 +249,14 @@ function Chips({
   options,
   required,
   defaultValue,
+  hints,
 }: {
   name: string;
   options: Record<string | number, string>;
   required?: boolean;
   defaultValue?: string;
+  /** ボタンの中に小さく添える補足（値ごと） */
+  hints?: Record<string, string>;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -272,8 +270,9 @@ function Chips({
             defaultChecked={defaultValue === value}
             className="peer sr-only"
           />
-          <span className="inline-flex min-h-11 items-center rounded-full border border-stone-300 bg-white px-4 text-sm peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
+          <span className="inline-flex min-h-11 flex-col items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-sm leading-tight peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
             {label}
+            {hints?.[value] && <span className="text-[10px] opacity-75">{hints[value]}</span>}
           </span>
         </label>
       ))}

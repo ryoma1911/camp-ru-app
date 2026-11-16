@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { FacilitiesState } from "@/app/admin/actions";
 import { FacilityFields } from "@/components/facility-fields";
+import { PlaceIdField } from "@/components/place-id-field";
 import type { Campsite } from "@/lib/labels";
 
 /** 今ある4項目は「あり・なし」だけ（チェックしなければなし） */
@@ -45,6 +46,8 @@ export function FacilitiesForm({
       </fieldset>
 
       <FacilityFields initial={campsite} unknownLabel="未入力" />
+
+      <PlaceIdField defaultValue={campsite.google_place_id} />
 
       {state.error && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">

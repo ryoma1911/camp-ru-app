@@ -52,7 +52,7 @@ async function AdminContent() {
       </Link>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold">キャンプ場の写真・設備</h2>
+        <h2 className="text-lg font-bold">キャンプ場の写真・設備・地図</h2>
         <p className="text-sm text-stone-600">
           写真は「自分で撮った写真」か「投稿者が許可したソト活の写真」だけを使います。
         </p>
@@ -82,7 +82,7 @@ async function AdminContent() {
                   href={`/admin/campsites/${c.slug}/edit`}
                   className="shrink-0 rounded-full border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50"
                 >
-                  設備
+                  設備・地図
                 </Link>
               </li>
             );

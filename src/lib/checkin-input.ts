@@ -1,5 +1,5 @@
 import "server-only";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE, SLEEP_QUALITY } from "@/lib/labels";
 
 export type CheckinFormState = { error: string | null };
 
@@ -11,7 +11,7 @@ export type CheckinFields = {
   min_temp_c: number | null;
   temp_measured: boolean;
   temp_at_dawn: boolean;
-  sleeping_bag_comfort_c: number | null;
+  sleeping_bag_type: keyof typeof SLEEPING_BAG_TYPE | null;
   sleep_quality: keyof typeof SLEEP_QUALITY | null;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
@@ -56,9 +56,8 @@ export function parseCheckinForm(
     return { ok: false, error: "地面の固さ・焚き火は必ず選んでください。" };
   }
   const minTemp = intInRange(formData.get("min_temp_c"), -40, 45);
-  const bagComfort = intInRange(formData.get("sleeping_bag_comfort_c"), -40, 30);
   const bugLevel = intInRange(formData.get("bug_level"), 1, 3);
-  if (minTemp === undefined || bagComfort === undefined || bugLevel === undefined) {
+  if (minTemp === undefined || bugLevel === undefined) {
     return { ok: false, error: "入力値が正しくありません。選び直してください。" };
   }
   const heaterValues = heaters(formData);
@@ -86,7 +85,8 @@ export function parseCheckinForm(
       min_temp_c: minTemp,
       temp_measured: formData.get("temp_measured") === "yes",
       temp_at_dawn: formData.get("temp_at_dawn") !== "no",
-      sleeping_bag_comfort_c: bagComfort,
+      // 「わからない」は空欄（null）。快適温度の列（sleeping_bag_comfort_c）はもう触らない
+      sleeping_bag_type: pick(SLEEPING_BAG_TYPE, formData.get("sleeping_bag_type")),
       sleep_quality: pick(SLEEP_QUALITY, formData.get("sleep_quality")),
       // 地面（ground_type）はフォームから外した。新しい投稿は空欄、編集では元の値に触らない
       peg_needed: pegNeeded,
