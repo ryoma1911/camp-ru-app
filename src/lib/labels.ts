@@ -22,6 +22,7 @@ export const FIRE_RULE = {
   prohibited: "焚き火禁止",
 } as const;
 
+// 地面はソト活のフォーム・集計・検索から外した。DB の列（checkins.ground_type）と enum は過去の投稿のために残している
 export const GROUND_TYPE = {
   grass: "芝",
   soil: "土",
@@ -143,7 +144,6 @@ export type Checkin = {
   temp_at_dawn: boolean;
   sleeping_bag_comfort_c: number | null;
   sleep_quality: keyof typeof SLEEP_QUALITY | null;
-  ground_type: keyof typeof GROUND_TYPE;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: keyof typeof BUG_LEVEL | null;

@@ -1,5 +1,5 @@
 import "server-only";
-import { FIRE_STATUS, GROUND_TYPE, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
 
 export type CheckinFormState = { error: string | null };
 
@@ -13,7 +13,6 @@ export type CheckinFields = {
   temp_at_dawn: boolean;
   sleeping_bag_comfort_c: number | null;
   sleep_quality: keyof typeof SLEEP_QUALITY | null;
-  ground_type: keyof typeof GROUND_TYPE;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: number | null;
@@ -51,11 +50,10 @@ export function parseCheckinForm(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(visitedOn) || Number.isNaN(Date.parse(visitedOn))) {
     return { ok: false, error: "行った日を選んでください。" };
   }
-  const groundType = pick(GROUND_TYPE, formData.get("ground_type"));
   const pegNeeded = pick(PEG_NEEDED, formData.get("peg_needed"));
   const fireStatus = pick(FIRE_STATUS, formData.get("fire_status"));
-  if (!groundType || !pegNeeded || !fireStatus) {
-    return { ok: false, error: "地面・ペグ・焚き火は必ず選んでください。" };
+  if (!pegNeeded || !fireStatus) {
+    return { ok: false, error: "地面の固さ・焚き火は必ず選んでください。" };
   }
   const minTemp = intInRange(formData.get("min_temp_c"), -40, 45);
   const bagComfort = intInRange(formData.get("sleeping_bag_comfort_c"), -40, 30);
@@ -90,7 +88,7 @@ export function parseCheckinForm(
       temp_at_dawn: formData.get("temp_at_dawn") !== "no",
       sleeping_bag_comfort_c: bagComfort,
       sleep_quality: pick(SLEEP_QUALITY, formData.get("sleep_quality")),
-      ground_type: groundType,
+      // 地面（ground_type）はフォームから外した。新しい投稿は空欄、編集では元の値に触らない
       peg_needed: pegNeeded,
       fire_status: fireStatus,
       bug_level: bugLevel,

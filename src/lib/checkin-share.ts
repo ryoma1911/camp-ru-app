@@ -2,7 +2,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, CHECKIN_COLUMNS } from "@/lib/campsites";
-import { BUG_LEVEL, GROUND_TYPE, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
+import { BUG_LEVEL, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
 import { SITE_NAME } from "@/lib/site";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
@@ -50,7 +50,7 @@ export function cardTiles(c: Checkin): { label: string; value: string; sub: stri
       sub: c.sleep_quality ? SLEEP_QUALITY[c.sleep_quality] : c.temp_measured ? "温度計で実測" : "体感",
     });
   }
-  tiles.push({ label: "② ペグ", value: PEG_SHORT[c.peg_needed], sub: `地面は${GROUND_TYPE[c.ground_type]}` });
+  tiles.push({ label: "② 地面の固さ", value: PEG_SHORT[c.peg_needed], sub: "必要だったペグ" });
   tiles.push({ label: "③ 焚き火", value: FIRE_SHORT[c.fire_status], sub: c.bug_level ? BUG_LEVEL[c.bug_level] : "" });
   return tiles;
 }

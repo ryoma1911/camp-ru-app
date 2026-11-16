@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
-import { FIRE_STATUS, GROUND_TYPE, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEP_QUALITY } from "@/lib/labels";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 type Row = {
@@ -9,13 +9,15 @@ type Row = {
   min_temp_c: number | null;
   sleeping_bag_comfort_c: number | null;
   sleep_quality: keyof typeof SLEEP_QUALITY | null;
-  ground_type: keyof typeof GROUND_TYPE;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: number | null;
   party_type: keyof typeof PARTY_TYPE | null;
   heaters: (keyof typeof HEATER)[] | null;
 };
+
+/** 虫の棒グラフの名前（棒の見出しが「虫」なので短く） */
+export const BUG_BARS = { "1": "少ない", "2": "ふつう", "3": "多い" } as const;
 
 /** 選択肢ごとの件数（多い順）。0件の選択肢も残して分布を表示できるようにする */
 export type Breakdown<K extends string> = { key: K; count: number }[];
@@ -37,14 +39,14 @@ export type SleepStat = {
 
 export type CampsiteStats = {
   total: number;
-  ground: Breakdown<keyof typeof GROUND_TYPE>;
   peg: Breakdown<keyof typeof PEG_NEEDED>;
   fire: Breakdown<keyof typeof FIRE_STATUS>;
-  bug: { count: number; avg: number | null };
-  /** 誰と行ったか（記録のある投稿だけを数える） */
-  party: Breakdown<keyof typeof PARTY_TYPE>;
-  /** 使った暖房（1件の投稿で複数あれば、それぞれ数える） */
-  heaters: Breakdown<keyof typeof HEATER>;
+  /** 虫（少ない/ふつう/多い）。total は虫を記録した投稿の数 */
+  bug: { items: Breakdown<keyof typeof BUG_BARS>; total: number };
+  /** 誰と行ったか。total は記録した投稿の数 */
+  party: { items: Breakdown<keyof typeof PARTY_TYPE>; total: number };
+  /** 使った暖房（1件の投稿で複数あれば、それぞれ数える）。total は記録した投稿の数 */
+  heaters: { items: Breakdown<keyof typeof HEATER>; total: number };
   months: MonthStat[];
   sleep: SleepStat[];
 };
@@ -57,7 +59,7 @@ function breakdown<K extends string>(labels: Record<K, string>, values: K[]): Br
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-type SummaryRow = Pick<Row, "visited_on" | "min_temp_c" | "ground_type" | "peg_needed" | "fire_status">;
+type SummaryRow = Pick<Row, "visited_on" | "min_temp_c" | "peg_needed" | "fire_status">;
 
 /** トップの一覧に出す、キャンプ場ごとの簡易集計 */
 export type CheckinSummary = {
@@ -65,7 +67,6 @@ export type CheckinSummary = {
   coldest: number | null;
   coldestMonth: number | null;
   topPeg: keyof typeof PEG_NEEDED | null;
-  topGround: keyof typeof GROUND_TYPE | null;
   /** 焚き火をしようとした日のうち、風で控えた割合（%）。しようとした日がなければ null */
   windSkipRate: number | null;
   /** 月（1〜12）ごとの明け方の最低気温の平均。記録のない月は入らない */
@@ -86,7 +87,7 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("checkins")
-    .select("campsite_id, visited_on, min_temp_c, ground_type, peg_needed, fire_status");
+    .select("campsite_id, visited_on, min_temp_c, peg_needed, fire_status");
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
 
   const groups = new Map<string, SummaryRow[]>();
@@ -116,7 +117,6 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
       [...monthTemps].map(([m, ts]) => [m, round1(ts.reduce((a, b) => a + b, 0) / ts.length)]),
     );
     const peg = breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed))[0];
-    const ground = breakdown(GROUND_TYPE, rows.map((r) => r.ground_type))[0];
     const done = rows.filter((r) => r.fire_status === "done").length;
     const skipped = rows.filter((r) => r.fire_status === "skipped_wind").length;
     const monthCount: Record<number, number> = {};
@@ -130,7 +130,6 @@ export async function getCheckinSummaries(): Promise<Record<string, CheckinSumma
       coldest,
       coldestMonth,
       topPeg: peg?.count ? peg.key : null,
-      topGround: ground?.count ? ground.key : null,
       monthAvgTemp,
       windSkipRate: done + skipped ? Math.round((skipped / (done + skipped)) * 100) : null,
     };
@@ -151,7 +150,7 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
   const { data, error } = await supabase
     .from("checkins")
     .select(
-      "visited_on, min_temp_c, sleeping_bag_comfort_c, sleep_quality, ground_type, peg_needed, fire_status, bug_level, party_type, heaters",
+      "visited_on, min_temp_c, sleeping_bag_comfort_c, sleep_quality, peg_needed, fire_status, bug_level, party_type, heaters",
     )
     .eq("campsite_id", campsiteId);
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
@@ -181,16 +180,17 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
     sleepMap.set(key, s);
   }
 
-  const bugs = rows.map((r) => r.bug_level).filter((b): b is number => b != null);
+  const bugs = rows.flatMap((r) => (r.bug_level != null ? [String(r.bug_level) as keyof typeof BUG_BARS] : []));
+  const parties = rows.flatMap((r) => (r.party_type ? [r.party_type] : []));
+  const heaterRows = rows.filter((r) => r.heaters?.length);
 
   return {
     total: rows.length,
-    ground: breakdown(GROUND_TYPE, rows.map((r) => r.ground_type)),
     peg: breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed)),
     fire: breakdown(FIRE_STATUS, rows.map((r) => r.fire_status)),
-    bug: { count: bugs.length, avg: bugs.length ? round1(bugs.reduce((a, b) => a + b, 0) / bugs.length) : null },
-    party: breakdown(PARTY_TYPE, rows.flatMap((r) => (r.party_type ? [r.party_type] : []))),
-    heaters: breakdown(HEATER, rows.flatMap((r) => r.heaters ?? [])),
+    bug: { items: breakdown(BUG_BARS, bugs), total: bugs.length },
+    party: { items: breakdown(PARTY_TYPE, parties), total: parties.length },
+    heaters: { items: breakdown(HEATER, heaterRows.flatMap((r) => r.heaters ?? [])), total: heaterRows.length },
     months,
     sleep: [...sleepMap.values()].sort((a, b) => a.month - b.month || a.bagBand - b.bagBand),
   };

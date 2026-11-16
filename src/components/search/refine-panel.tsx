@@ -75,7 +75,7 @@ function Sheet({
         <p className="font-bold">絞り込み</p>
         <button
           type="button"
-          onClick={() => setDraft({ ...filters, q: "", prefs: [], types: [], sites: [], facilities: [], reals: [], grounds: [], month: null, minTemp: null })}
+          onClick={() => setDraft({ ...filters, q: "", prefs: [], types: [], sites: [], facilities: [], reals: [], month: null, minTemp: null })}
           className="text-sm text-emerald-700 underline"
         >
           すべて解除

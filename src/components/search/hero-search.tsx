@@ -141,7 +141,7 @@ export function HeroSearch({
 }
 
 const countSelected = (f: Filters) =>
-  f.facilities.length + f.types.length + f.sites.length + f.reals.length + f.grounds.length +
+  f.facilities.length + f.types.length + f.sites.length + f.reals.length +
   (f.month && f.minTemp != null ? 1 : 0);
 
 function Panel({

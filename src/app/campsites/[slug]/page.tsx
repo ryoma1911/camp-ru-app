@@ -6,9 +6,7 @@ import { getCampsite, getCampsites, getRecentCheckins } from "@/lib/campsites";
 import { CampsiteFacilities } from "@/components/campsite-facilities";
 import { CampsiteGallery } from "@/components/campsite-gallery";
 import { CampsiteStats } from "@/components/campsite-stats";
-import { CheckinCard } from "@/components/checkin-card";
-import { CheckinOwnerActions } from "@/components/checkin-owner-actions";
-import { getCurrentUserId } from "@/lib/auth";
+import { CheckinRow } from "@/components/checkin-card";
 import { getCampsiteImages } from "@/lib/campsite-images";
 import { getCampsiteStats } from "@/lib/campsite-stats";
 import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
@@ -112,7 +110,7 @@ async function PostedNotice({ searchParams }: Pick<Props, "searchParams">) {
 }
 
 async function CheckinList({ campsiteId }: { campsiteId: string }) {
-  const [checkins, userId] = await Promise.all([getRecentCheckins(campsiteId), getCurrentUserId()]);
+  const checkins = await getRecentCheckins(campsiteId);
   if (checkins.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-stone-300 p-6 text-sm text-stone-600">
@@ -120,15 +118,11 @@ async function CheckinList({ campsiteId }: { campsiteId: string }) {
       </p>
     );
   }
+  // 一覧は簡易表示。押すと投稿1件のページに移り、全部の項目と（本人なら）編集・削除が出る
   return (
-    <ul className="space-y-3">
+    <ul className="divide-y divide-stone-200 overflow-hidden rounded-xl border border-stone-200 bg-white">
       {checkins.map((c) => (
-        <CheckinCard
-          key={c.id}
-          checkin={c}
-          heading={c.profiles?.display_name ?? "キャンパー"}
-          actions={c.user_id === userId ? <CheckinOwnerActions id={c.id} campsiteId={campsiteId} /> : null}
-        />
+        <CheckinRow key={c.id} checkin={c} />
       ))}
     </ul>
   );

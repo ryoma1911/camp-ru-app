@@ -2,7 +2,7 @@
 // キャンプ場は多くても数百件なので、キャッシュ済みの一覧と集計をアプリ側で絞り込む（DBに毎回問い合わせない）。
 // ブラウザでも件数を数えるため、このファイルはサーバー専用にしない
 import type { CheckinSummary } from "@/lib/campsite-stats";
-import { GROUND_TYPE, LOCATION_TYPE, PEG_NEEDED, SITE_STYLE, type Campsite } from "@/lib/labels";
+import { LOCATION_TYPE, PEG_NEEDED, SITE_STYLE, type Campsite } from "@/lib/labels";
 
 export const TEMP_OPTIONS = [-10, -5, 0, 5] as const;
 export const WIND_MAX_RATE = 20; // 「風で控えた日が少ない」とみなす上限（%）
@@ -65,7 +65,6 @@ export type Filters = {
   sites: ("sectioned" | "free")[]; // どれか
   facilities: Facility[]; // すべて
   reals: Real[]; // すべて
-  grounds: (keyof typeof GROUND_TYPE)[]; // どれか
   month: number | null;
   minTemp: number | null;
   sort: SortKey;
@@ -73,7 +72,7 @@ export type Filters = {
 };
 
 export const EMPTY_FILTERS: Filters = {
-  tab: null, q: "", prefs: [], types: [], sites: [], facilities: [], reals: [], grounds: [],
+  tab: null, q: "", prefs: [], types: [], sites: [], facilities: [], reals: [],
   month: null, minTemp: null, sort: "posts", nodata: false,
 };
 
@@ -99,7 +98,7 @@ export function parseFilters(params: Params): Filters {
     sites: pickAll(["sectioned", "free"] as const, many(params.site)),
     facilities: pickAll(FACILITIES, many(params.fac)),
     reals: pickAll(REALS, many(params.real)),
-    grounds: pickAll(GROUND_TYPE, many(params.ground)),
+    // 地面（?ground=）の絞り込みはやめた。古い URL で来ても無視する
     month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : null,
     minTemp: minTemp !== "" && (TEMP_OPTIONS as readonly number[]).includes(Number(minTemp)) ? Number(minTemp) : null,
     sort: sort === "warm" || sort === "pref" || sort === "new" || sort === "recommend" ? sort : "posts",
@@ -117,7 +116,6 @@ export function toQuery(f: Partial<Filters>): string {
   f.sites?.forEach((v) => p.append("site", v));
   f.facilities?.forEach((v) => p.append("fac", v));
   f.reals?.forEach((v) => p.append("real", v));
-  f.grounds?.forEach((v) => p.append("ground", v));
   if (f.month) p.set("month", String(f.month));
   if (f.minTemp != null) p.set("minTemp", String(f.minTemp));
   if (f.sort && f.sort !== "posts") p.set("sort", f.sort);
@@ -262,14 +260,6 @@ function checksFor(f: Filters): Check[] {
         return s?.topPeg ? pegOk[real].includes(s.topPeg) : null;
       },
       without: (x) => ({ ...x, reals: x.reals.filter((v) => v !== real) }),
-    });
-  }
-  if (f.grounds.length) {
-    checks.push({
-      id: "ground",
-      label: `地面：${f.grounds.map((g) => GROUND_TYPE[g]).join("・")}`,
-      test: (_c, s) => (s?.topGround ? f.grounds.includes(s.topGround) : null),
-      without: (x) => ({ ...x, grounds: [] }),
     });
   }
   return checks;

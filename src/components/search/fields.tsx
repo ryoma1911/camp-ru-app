@@ -1,6 +1,6 @@
 "use client";
 
-import { GROUND_TYPE, LOCATION_TYPE } from "@/lib/labels";
+import { LOCATION_TYPE } from "@/lib/labels";
 import { FACILITIES, REALS, REGIONS, TEMP_OPTIONS, toggle, type Filters } from "@/lib/search";
 
 /** 「この選択肢を足したら何件になるか」。省略すると件数は出さない */
@@ -163,15 +163,6 @@ export function FeatureFields({ filters, onChange, countFor, compact }: FieldPro
             const next = { ...filters, reals: toggle(filters.reals, k) };
             return (
               <CheckItem key={k} label={REALS[k]} checked={filters.reals.includes(k)} count={count(next)} onToggle={() => onChange(next)} />
-            );
-          })}
-        </div>
-        <p className="mt-2 text-xs text-stone-500">地面（どれか）</p>
-        <div className={grid}>
-          {(Object.keys(GROUND_TYPE) as (keyof typeof GROUND_TYPE)[]).map((k) => {
-            const next = { ...filters, grounds: toggle(filters.grounds, k) };
-            return (
-              <CheckItem key={k} label={GROUND_TYPE[k]} checked={filters.grounds.includes(k)} count={count(next)} onToggle={() => onChange(next)} />
             );
           })}
         </div>

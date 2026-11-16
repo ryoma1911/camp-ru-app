@@ -6,7 +6,6 @@ import type { CheckinFormState } from "@/lib/checkin-input";
 import {
   BUG_LEVEL,
   FIRE_STATUS,
-  GROUND_TYPE,
   HEATER,
   PARTY_TYPE,
   PEG_NEEDED,
@@ -124,11 +123,8 @@ export function CheckinForm({ action, userId, initial, submitLabel = "ソト活�
         </Field>
       </Section>
 
-      <Section number="②" title="地面とペグ">
-        <Field label="地面" required>
-          <Chips name="ground_type" options={GROUND_TYPE} required defaultValue={initial?.ground_type} />
-        </Field>
-        <Field label="必要だったペグ" required>
+      <Section number="②" title="地面の固さ">
+        <Field label="地面の固さ（必要だったペグ）" required>
           <Chips name="peg_needed" options={PEG_NEEDED} required defaultValue={initial?.peg_needed} />
         </Field>
       </Section>

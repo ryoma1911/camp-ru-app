@@ -1,5 +1,5 @@
-import type { Breakdown, CampsiteStats as Stats, MonthStat, SleepStat } from "@/lib/campsite-stats";
-import { BUG_LEVEL, FIRE_STATUS, GROUND_TYPE, HEATER, PARTY_TYPE, PEG_NEEDED } from "@/lib/labels";
+import { BUG_BARS, type Breakdown, type CampsiteStats as Stats, type MonthStat, type SleepStat } from "@/lib/campsite-stats";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED } from "@/lib/labels";
 
 // 0℃を境に、寒い側＝青・暖かい側＝オレンジ（色覚の違いがあっても区別できる組み合わせを検証済み）
 const COLD = "#0369a1";
@@ -41,17 +41,24 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Card title="② 必要だったペグ">
+        <Card title="② 地面の固さ" note="必要だったペグ">
           <MeterList items={stats.peg} labels={PEG_NEEDED} total={stats.total} />
-        </Card>
-        <Card title="② 地面">
-          <MeterList items={stats.ground} labels={GROUND_TYPE} total={stats.total} />
         </Card>
         <Card title="③ 焚き火">
           <MeterList items={stats.fire} labels={FIRE_STATUS} total={stats.total} />
         </Card>
-        <Card title="そのほか">
-          <Others stats={stats} />
+      </div>
+
+      {/* 任意の項目は、記録した投稿の数を分母にする（暖房は複数選べるので合計が100%を超えることがある） */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card title="虫" note={recorded(stats.bug.total)}>
+          <MeterList items={stats.bug.items} labels={BUG_BARS} total={stats.bug.total} />
+        </Card>
+        <Card title="誰と" note={recorded(stats.party.total)}>
+          <MeterList items={stats.party.items} labels={PARTY_TYPE} total={stats.party.total} />
+        </Card>
+        <Card title="暖房" note={recorded(stats.heaters.total)}>
+          <MeterList items={stats.heaters.items} labels={HEATER} total={stats.heaters.total} />
         </Card>
       </div>
     </section>
@@ -85,14 +92,7 @@ function TempTile({ months }: { months: MonthStat[] }) {
 
 function PegTile({ stats }: { stats: Stats }) {
   const topPeg = stats.peg[0];
-  const topGround = stats.ground[0];
-  return (
-    <Tile
-      label="② ペグ"
-      value={PEG_NEEDED[topPeg.key]}
-      sub={`${stats.total}件中${topPeg.count}件・地面は${GROUND_TYPE[topGround.key]}が多い`}
-    />
-  );
+  return <Tile label="② 地面の固さ" value={PEG_NEEDED[topPeg.key]} sub={`${stats.total}件中${topPeg.count}件`} />;
 }
 
 function FireTile({ fire }: { fire: Breakdown<keyof typeof FIRE_STATUS> }) {
@@ -247,6 +247,7 @@ function MeterList<K extends string>({
   total: number;
 }) {
   const shown = items.filter((i) => i.count > 0);
+  if (shown.length === 0) return <p className="text-sm text-stone-400">記録なし</p>;
   return (
     <ul className="space-y-2">
       {shown.map((i, idx) => (
@@ -270,28 +271,7 @@ function MeterList<K extends string>({
   );
 }
 
-function Others({ stats }: { stats: Stats }) {
-  // 件数のある選択肢だけを多い順に「ソロ 5件・グループ 3件」と並べる
-  const counts = <K extends string>(items: { key: K; count: number }[], labels: Record<K, string>) => {
-    const found = items.filter((i) => i.count > 0);
-    return found.length ? found.map((i) => `${labels[i.key]} ${i.count}件`).join("・") : "記録なし";
-  };
-  const bugLabel =
-    stats.bug.avg == null ? "記録なし" : BUG_LEVEL[Math.round(stats.bug.avg) as keyof typeof BUG_LEVEL];
-  return (
-    <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 text-sm">
-      <dt className="text-stone-500">虫</dt>
-      <dd>
-        {bugLabel}
-        {stats.bug.count > 0 && <span className="ml-1 text-xs text-stone-500">（{stats.bug.count}件）</span>}
-      </dd>
-      <dt className="text-stone-500">誰と</dt>
-      <dd>{counts(stats.party, PARTY_TYPE)}</dd>
-      <dt className="text-stone-500">暖房</dt>
-      <dd>{counts(stats.heaters, HEATER)}</dd>
-    </dl>
-  );
-}
+const recorded = (n: number) => (n ? `${n}件の記録から` : undefined);
 
 function Card({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (

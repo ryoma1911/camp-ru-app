@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   BUG_LEVEL,
   FIRE_STATUS,
-  GROUND_TYPE,
   HEATER,
   PARTY_TYPE,
   PEG_NEEDED,
@@ -48,10 +47,8 @@ export function CheckinCard({
             </span>
           )}
         </dd>
-        <dt className="text-stone-500">地面・ペグ</dt>
-        <dd>
-          {GROUND_TYPE[c.ground_type]}／{PEG_NEEDED[c.peg_needed]}
-        </dd>
+        <dt className="text-stone-500">地面の固さ</dt>
+        <dd>{PEG_NEEDED[c.peg_needed]}</dd>
         <dt className="text-stone-500">焚き火</dt>
         <dd>{FIRE_STATUS[c.fire_status]}</dd>
         {c.bug_level && (
@@ -93,6 +90,47 @@ export function CheckinCard({
       )}
 
       {actions}
+    </li>
+  );
+}
+
+/**
+ * キャンプ場ページの一覧用の簡易表示（写真・ユーザー名・日付・同行・気温）。
+ * 押すと投稿1件のページに移り、全部の項目と、本人なら編集・削除を出す
+ */
+export function CheckinRow({ checkin: c }: { checkin: Checkin }) {
+  const photo = [...c.checkin_photos].sort((a, b) => a.sort_order - b.sort_order)[0];
+  const temp = c.min_temp_c != null ? `${c.temp_at_dawn ? "明け方" : "最低"} ${Number(c.min_temp_c)}℃` : null;
+  return (
+    <li>
+      <Link href={`/checkins/${c.id}`} className="flex items-center gap-3 px-3 py-3 hover:bg-stone-50">
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`${supabaseUrl}/storage/v1/object/public/checkin-photos/${photo.storage_path}`}
+            alt=""
+            loading="lazy"
+            className="h-14 w-14 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <span aria-hidden className="h-14 w-14 shrink-0 rounded-lg bg-stone-100" />
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="truncate font-medium">{c.profiles?.display_name ?? "キャンパー"}</span>
+            <time className="shrink-0 text-xs text-stone-500">{c.visited_on.replaceAll("-", "/")}</time>
+          </span>
+          <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+            {c.party_type && (
+              <span className="rounded bg-stone-100 px-2 py-0.5 text-xs text-stone-700">{PARTY_TYPE[c.party_type]}</span>
+            )}
+            <span className={temp ? "" : "text-stone-400"}>{temp ?? "気温の記録なし"}</span>
+          </span>
+        </span>
+        <span aria-hidden className="shrink-0 text-stone-400">
+          ›
+        </span>
+      </Link>
     </li>
   );
 }
