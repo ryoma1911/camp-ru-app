@@ -60,7 +60,7 @@ node data/check-campsites.mjs data/campsites.csv
 
 ## ソト活のテストデータ
 
-表示や検索を確かめるためのテストデータを、Supabase の SQL エディタで入れられます（`supabase/seed/`。マイグレーションではないので自動では流れません）。
+表示や検索を確かめるためのテストデータを、Supabase の SQL エディタで入れられます。SQL は `supabase/seed/` に置いて手元だけで使い、リポジトリには含めません（`.git/info/exclude` で除外。マイグレーションではないので自動では流れません）。
 
 | ファイル | 中身 |
 | --- | --- |
