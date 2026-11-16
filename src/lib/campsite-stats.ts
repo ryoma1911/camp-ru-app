@@ -29,19 +29,33 @@ export type MonthStat = {
   coldest: number | null;
 };
 
+/** 選択肢ごとの件数と、その項目を記録した投稿の数（割合の分母） */
+export type Tally<K extends string> = { items: Breakdown<K>; total: number };
+
+/**
+ * ある月の現地コンディション（焚き火・寝袋・暖房・虫・誰と）。年をまたいで同じ月をまとめて数える。
+ * 任意の項目は「わからない」（null）を数えず、記録した投稿の数を分母にする
+ */
+export type MonthConditions = {
+  month: number; // 1〜12
+  /** その月のソト活の数 */
+  count: number;
+  /** 焚き火（必須項目なので total はその月の投稿の数） */
+  fire: Tally<keyof typeof FIRE_STATUS>;
+  bag: Tally<keyof typeof SLEEPING_BAG_TYPE>;
+  /** 使った暖房（1件の投稿で複数あれば、それぞれ数える） */
+  heaters: Tally<keyof typeof HEATER>;
+  bug: Tally<keyof typeof BUG_BARS>;
+  party: Tally<keyof typeof PARTY_TYPE>;
+};
+
 export type CampsiteStats = {
   total: number;
+  /** 地面の固さは月で変わりにくいので全期間で出す */
   peg: Breakdown<keyof typeof PEG_NEEDED>;
-  fire: Breakdown<keyof typeof FIRE_STATUS>;
-  /** 虫（少ない/ふつう/多い）。total は虫を記録した投稿の数 */
-  bug: { items: Breakdown<keyof typeof BUG_BARS>; total: number };
-  /** 誰と行ったか。total は記録した投稿の数 */
-  party: { items: Breakdown<keyof typeof PARTY_TYPE>; total: number };
-  /** 使った暖房（1件の投稿で複数あれば、それぞれ数える）。total は記録した投稿の数 */
-  heaters: { items: Breakdown<keyof typeof HEATER>; total: number };
-  /** 使った寝袋のタイプ。「わからない」（null）は数えない。total は記録した投稿の数 */
-  bag: { items: Breakdown<keyof typeof SLEEPING_BAG_TYPE>; total: number };
   months: MonthStat[];
+  /** 月ごとの現地コンディション（[0] = 1月 … [11] = 12月） */
+  conditions: MonthConditions[];
 };
 
 function breakdown<K extends string>(labels: Record<K, string>, values: K[]): Breakdown<K> {
@@ -161,19 +175,28 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
     };
   });
 
+  return {
+    total: rows.length,
+    peg: breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed)),
+    months,
+    conditions: Array.from({ length: 12 }, (_, i) =>
+      conditionsOf(i + 1, rows.filter((r) => Number(r.visited_on.slice(5, 7)) === i + 1)),
+    ),
+  };
+}
+
+function conditionsOf(month: number, rows: Row[]): MonthConditions {
   const bugs = rows.flatMap((r) => (r.bug_level != null ? [String(r.bug_level) as keyof typeof BUG_BARS] : []));
   const parties = rows.flatMap((r) => (r.party_type ? [r.party_type] : []));
   const heaterRows = rows.filter((r) => r.heaters?.length);
   const bags = rows.flatMap((r) => (r.sleeping_bag_type ? [r.sleeping_bag_type] : []));
-
   return {
-    total: rows.length,
-    peg: breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed)),
-    fire: breakdown(FIRE_STATUS, rows.map((r) => r.fire_status)),
+    month,
+    count: rows.length,
+    fire: { items: breakdown(FIRE_STATUS, rows.map((r) => r.fire_status)), total: rows.length },
+    bag: { items: breakdown(SLEEPING_BAG_TYPE, bags), total: bags.length },
+    heaters: { items: breakdown(HEATER, heaterRows.flatMap((r) => r.heaters ?? [])), total: heaterRows.length },
     bug: { items: breakdown(BUG_BARS, bugs), total: bugs.length },
     party: { items: breakdown(PARTY_TYPE, parties), total: parties.length },
-    heaters: { items: breakdown(HEATER, heaterRows.flatMap((r) => r.heaters ?? [])), total: heaterRows.length },
-    bag: { items: breakdown(SLEEPING_BAG_TYPE, bags), total: bags.length },
-    months,
   };
 }

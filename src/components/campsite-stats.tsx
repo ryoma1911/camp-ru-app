@@ -1,4 +1,11 @@
-import { BUG_BARS, type Breakdown, type CampsiteStats as Stats, type MonthStat } from "@/lib/campsite-stats";
+import Link from "next/link";
+import {
+  BUG_BARS,
+  type Breakdown,
+  type CampsiteStats as Stats,
+  type MonthConditions,
+  type MonthStat,
+} from "@/lib/campsite-stats";
 import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
 
 // 0℃を境に、寒い側＝青・暖かい側＝オレンジ（色覚の違いがあっても区別できる組み合わせを検証済み）
@@ -7,8 +14,11 @@ const WARM = "#c2410c";
 
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
-/** キャンプ場ページ上部の「現地コンディション」。投稿の羅列より先に結論が見えるようにする */
-export function CampsiteStats({ stats }: { stats: Stats }) {
+/**
+ * キャンプ場ページ上部の「現地コンディション」。投稿の羅列より先に結論が見えるようにする。
+ * 焚き火・寝袋・暖房・虫・誰とは今月（month）の分を出し、月別のページへ案内する
+ */
+export function CampsiteStats({ stats, month, slug }: { stats: Stats; month: number; slug: string }) {
   if (stats.total === 0) {
     return (
       <section className="rounded-xl border border-dashed border-stone-300 p-6 text-sm text-stone-600">
@@ -16,6 +26,7 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
       </section>
     );
   }
+  const current = stats.conditions[month - 1];
 
   return (
     <section className="space-y-4">
@@ -27,38 +38,72 @@ export function CampsiteStats({ stats }: { stats: Stats }) {
       <div className="grid gap-3 sm:grid-cols-3">
         <TempTile months={stats.months} />
         <PegTile stats={stats} />
-        <FireTile fire={stats.fire} />
+        <FireTile conditions={current} />
       </div>
 
       <Card title="① 月別の明け方の最低気温" note="各月の平均（℃）。記録のない月は薄い文字">
         <MonthlyTempChart months={stats.months} />
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Card title="② 地面の固さ" note="必要だったペグ">
-          <MeterList items={stats.peg} labels={PEG_NEEDED} total={stats.total} />
-        </Card>
-        <Card title="③ 焚き火">
-          <MeterList items={stats.fire} labels={FIRE_STATUS} total={stats.total} />
-        </Card>
-      </div>
+      <Card title="② 地面の固さ" note="必要だったペグ・全期間">
+        <MeterList items={stats.peg} labels={PEG_NEEDED} total={stats.total} />
+      </Card>
 
-      {/* 任意の項目は、記録した投稿の数を分母にする（「わからない」は数えない。暖房は複数選べるので合計が100%を超えることがある） */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Card title="寝袋" note={recorded(stats.bag.total)}>
-          <MeterList items={stats.bag.items} labels={SLEEPING_BAG_TYPE} total={stats.bag.total} />
-        </Card>
-        <Card title="虫" note={recorded(stats.bug.total)}>
-          <MeterList items={stats.bug.items} labels={BUG_BARS} total={stats.bug.total} />
-        </Card>
-        <Card title="誰と" note={recorded(stats.party.total)}>
-          <MeterList items={stats.party.items} labels={PARTY_TYPE} total={stats.party.total} />
-        </Card>
-        <Card title="暖房" note={recorded(stats.heaters.total)}>
-          <MeterList items={stats.heaters.items} labels={HEATER} total={stats.heaters.total} />
-        </Card>
-      </div>
+      <MonthConditionsSection conditions={current} moreHref={`/campsites/${slug}/conditions`} />
     </section>
+  );
+}
+
+/**
+ * ある月の焚き火・寝袋・暖房・虫・誰と。キャンプ場ページ（今月）と月別ページで使う。
+ * 任意の項目は記録した投稿の数を分母にする（「わからない」は数えない。暖房は複数選べるので合計が100%を超えることがある）
+ */
+export function MonthConditionsSection({
+  conditions: c,
+  moreHref,
+}: {
+  conditions: MonthConditions;
+  /** 「月別で見る」のリンク先（月別ページでは出さない） */
+  moreHref?: string;
+}) {
+  return (
+    <div className="space-y-3 rounded-xl border-2 border-emerald-700/30 p-3 sm:p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="font-bold">{c.month}月のコンディション</h3>
+        <p className="text-sm text-stone-500">
+          {c.count ? `${c.count}件の記録から` : null}
+          {moreHref && (
+            <Link href={moreHref} className="ml-3 text-emerald-700 underline">
+              月別で見る →
+            </Link>
+          )}
+        </p>
+      </div>
+      {c.count === 0 ? (
+        <p className="rounded-lg bg-stone-50 p-4 text-sm text-stone-600">
+          {c.month}月の記録はまだありません。
+          {moreHref && "ほかの月のコンディションは「月別で見る」から確認できます。"}
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Card title="③ 焚き火" note={recorded(c.fire.total)}>
+            <MeterList items={c.fire.items} labels={FIRE_STATUS} total={c.fire.total} />
+          </Card>
+          <Card title="寝袋" note={recorded(c.bag.total)}>
+            <MeterList items={c.bag.items} labels={SLEEPING_BAG_TYPE} total={c.bag.total} />
+          </Card>
+          <Card title="暖房" note={recorded(c.heaters.total)}>
+            <MeterList items={c.heaters.items} labels={HEATER} total={c.heaters.total} />
+          </Card>
+          <Card title="虫" note={recorded(c.bug.total)}>
+            <MeterList items={c.bug.items} labels={BUG_BARS} total={c.bug.total} />
+          </Card>
+          <Card title="誰と" note={recorded(c.party.total)}>
+            <MeterList items={c.party.items} labels={PARTY_TYPE} total={c.party.total} />
+          </Card>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -92,14 +137,16 @@ function PegTile({ stats }: { stats: Stats }) {
   return <Tile label="② 地面の固さ" value={PEG_NEEDED[topPeg.key]} sub={`${stats.total}件中${topPeg.count}件`} />;
 }
 
-function FireTile({ fire }: { fire: Breakdown<keyof typeof FIRE_STATUS> }) {
-  const count = (k: keyof typeof FIRE_STATUS) => fire.find((f) => f.key === k)?.count ?? 0;
+function FireTile({ conditions: c }: { conditions: MonthConditions }) {
+  const label = `③ 風で焚き火を控えた日（${c.month}月）`;
+  if (c.count === 0) return <Tile label={label} value="記録なし" sub={`${c.month}月のソト活がまだありません`} />;
+  const count = (k: keyof typeof FIRE_STATUS) => c.fire.items.find((f) => f.key === k)?.count ?? 0;
   // ルールで禁止の日は除き、「焚き火をしようとした日のうち風で控えた割合」を出す
   const tried = count("done") + count("skipped_wind");
-  if (tried === 0) return <Tile label="③ 焚き火" value="できた記録なし" sub="ルールで禁止の記録のみ" />;
+  if (tried === 0) return <Tile label={label} value="できた記録なし" sub="ルールで禁止の記録のみ" />;
   return (
     <Tile
-      label="③ 風で焚き火を控えた日"
+      label={label}
       value={`${pct(count("skipped_wind"), tried)}%`}
       sub={`焚き火をしようとした${tried}件中${count("skipped_wind")}件`}
     />

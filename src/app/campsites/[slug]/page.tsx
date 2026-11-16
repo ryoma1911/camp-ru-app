@@ -14,6 +14,7 @@ import { mapUrl } from "@/lib/place-id";
 import { connection } from "next/server";
 import { ClosureNotice } from "@/components/closure-badge";
 import { closureStatus } from "@/lib/closure";
+import { currentMonthInJapan } from "@/lib/time";
 
 export async function generateStaticParams() {
   const campsites = await getCampsites();
@@ -89,7 +90,7 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
       </section>
 
       <Suspense fallback={<p className="text-sm text-stone-500">集計中…</p>}>
-        <StatsSection campsiteId={campsite.id} />
+        <StatsSection campsiteId={campsite.id} slug={campsite.slug} />
       </Suspense>
 
       <CampsiteFacilities campsite={campsite} />
@@ -138,7 +139,9 @@ async function CheckinList({ campsiteId }: { campsiteId: string }) {
   );
 }
 
-async function StatsSection({ campsiteId }: { campsiteId: string }) {
+async function StatsSection({ campsiteId, slug }: { campsiteId: string; slug: string }) {
   const stats = await getCampsiteStats(campsiteId);
-  return <CampsiteStats stats={stats} />;
+  // 「今月」は日付で変わるので、集計（キャッシュ）とは別にリクエストのたびに決める
+  await connection();
+  return <CampsiteStats stats={stats} month={currentMonthInJapan()} slug={slug} />;
 }
