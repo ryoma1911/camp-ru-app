@@ -24,6 +24,8 @@ import {
 } from "@/lib/search";
 import { currentMonthInJapan, isWithinDays } from "@/lib/time";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { closureStatus, isClosedNow } from "@/lib/closure";
+import { ClosureChip } from "@/components/closure-badge";
 
 type Props = PageProps<"/">;
 
@@ -51,7 +53,9 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
   await connection();
   const month = currentMonthInJapan();
   const filters = parseFilters(params);
-  const result = searchCampsites(campsites, summaries, filters, month);
+  const now = new Date();
+  const isClosed = (c: Campsite) => isClosedNow(c, now);
+  const result = searchCampsites(campsites, summaries, filters, month, isClosed);
   const searched = hasConditions(filters);
 
   if (campsites.length === 0) {
@@ -76,7 +80,7 @@ async function SearchSection({ searchParams }: Pick<Props, "searchParams">) {
   // トップ（まだ検索していない状態）は、検索エリアの下に「おすすめ」「最近登録された」の欄だけを出す。
   // 一覧と絞り込み欄は検索したあとに出す
   if (!searched) {
-    const recommended = pickRecommended(campsites, summaries, month, SHELF_SIZE);
+    const recommended = pickRecommended(campsites, summaries, month, SHELF_SIZE, isClosed);
     const recent = [...campsites].sort(byNewest).slice(0, SHELF_SIZE);
     return (
       <div className="space-y-10">
@@ -219,14 +223,15 @@ function CampsiteList({
       {campsites.map((c) => (
         <li key={c.id}>
           <Link href={`/campsites/${c.slug}`} className="flex gap-3 p-4 hover:bg-stone-50 sm:gap-4">
-            {/* カバー写真（運営が登録した写真）。なければ種類の色 */}
+            {/* カバー写真（運営が登録した写真）。なければ種類の色。冬季閉鎖中は薄くする */}
             <CampsiteThumb
               campsite={c}
               cover={covers[c.id]}
-              className="h-16 w-16 shrink-0 rounded-lg sm:h-24 sm:w-32"
+              className={`h-16 w-16 shrink-0 rounded-lg sm:h-24 sm:w-32 ${closureStatus(c)?.kind === "closed" ? "opacity-50" : ""}`}
               labelClassName="text-xs sm:text-sm"
             />
             <div className="min-w-0 flex-1">
+              <ClosureChip status={closureStatus(c)} className="mb-1 inline-block" />
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-semibold">{c.name}</h2>
                 <span className="shrink-0 text-xs text-stone-500">{c.prefecture}</span>

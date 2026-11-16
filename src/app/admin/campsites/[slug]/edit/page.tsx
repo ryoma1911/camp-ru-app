@@ -37,7 +37,7 @@ async function AdminFacilitiesContent({ params }: Pick<Props, "params">) {
         </Link>
         <h1 className="mt-2 text-2xl font-bold">{campsite.name}の設備・地図</h1>
         <p className="mt-1 text-sm text-stone-600">
-          公式サイトで確認できたものを入れてください。わからない項目は「未入力」のままにすると、キャンプ場ページでは空欄になります。
+          公式サイトで確認できたものを入れてください。わからない項目は「未入力」のままにすると、キャンプ場ページでは空欄になります。冬季閉鎖は毎年同じ期間として、閉鎖中と閉鎖30日前からキャンプ場ページ・一覧に表示されます。
           {campsite.official_url && (
             <a href={campsite.official_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-emerald-700 underline">
               公式サイト

@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { CheckinSummary } from "@/lib/campsite-stats";
 import { LOCATION_TYPE, type Campsite } from "@/lib/labels";
 import { CampsiteThumb } from "./campsite-thumb";
+import { ClosureChip } from "./closure-badge";
+import { closureStatus } from "@/lib/closure";
 
 export type ShelfItem = {
   campsite: Campsite;
@@ -54,12 +56,15 @@ export function CampsiteShelf({
 }
 
 function ShelfCard({ item: { campsite: c, summary: s, cover, isNew }, month }: { item: ShelfItem; month: number }) {
+  // 一覧はリクエスト時に描くので、今日の冬季閉鎖の状態をここで判定する
+  const closure = closureStatus(c);
   const monthAvg = s?.monthAvgTemp[month];
   const temp = monthAvg != null ? `${month}月 平均${monthAvg}℃` : s?.coldest != null ? `最低${s.coldest}℃` : null;
   return (
     <Link href={`/campsites/${c.slug}`} className="block h-full overflow-hidden rounded-xl border border-stone-200 bg-white hover:bg-stone-50">
       <div className="relative h-28">
-        <CampsiteThumb campsite={c} cover={cover} className="h-full w-full" />
+        <CampsiteThumb campsite={c} cover={cover} className={`h-full w-full ${closure?.kind === "closed" ? "opacity-50" : ""}`} />
+        <ClosureChip status={closure} className="absolute bottom-2 left-2" />
         {isNew ? (
           <span className="absolute left-2 top-2 rounded-full bg-amber-700 px-2 py-0.5 text-xs font-bold text-white">NEW</span>
         ) : s ? (

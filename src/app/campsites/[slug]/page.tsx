@@ -9,8 +9,11 @@ import { CampsiteStats } from "@/components/campsite-stats";
 import { CheckinRow } from "@/components/checkin-card";
 import { getCampsiteImages } from "@/lib/campsite-images";
 import { getCampsiteStats } from "@/lib/campsite-stats";
-import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE } from "@/lib/labels";
+import { FIRE_RULE, LOCATION_TYPE, SITE_STYLE, type Campsite } from "@/lib/labels";
 import { mapUrl } from "@/lib/place-id";
+import { connection } from "next/server";
+import { ClosureNotice } from "@/components/closure-badge";
+import { closureStatus } from "@/lib/closure";
 
 export async function generateStaticParams() {
   const campsites = await getCampsites();
@@ -53,6 +56,10 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
       <section className="space-y-3">
         <p className="text-sm text-stone-500">{campsite.prefecture}</p>
         <h1 className="text-2xl font-bold">{campsite.name}</h1>
+        {/* 冬季閉鎖の札は今日の日付で決まるので、キャッシュの外（リクエスト時）で描く */}
+        <Suspense>
+          <WinterClosure campsite={campsite} />
+        </Suspense>
         <div className="flex flex-wrap gap-1.5 text-xs">
           <Tag>{LOCATION_TYPE[campsite.location_type]}</Tag>
           <Tag>{SITE_STYLE[campsite.site_style]}</Tag>
@@ -95,6 +102,11 @@ async function CampsiteContent({ params, searchParams }: Pick<Props, "params" | 
       </section>
     </div>
   );
+}
+
+async function WinterClosure({ campsite }: { campsite: Campsite }) {
+  await connection();
+  return <ClosureNotice status={closureStatus(campsite)} />;
 }
 
 async function PostedNotice({ searchParams }: Pick<Props, "searchParams">) {

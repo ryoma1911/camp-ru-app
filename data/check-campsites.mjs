@@ -27,8 +27,12 @@ const HEADER_FULL = [
   "has_kitchen", "garbage", "ac_power", "has_shop", "shop_items", "has_wifi", "payment_methods",
 ];
 // Googleマップの Place ID の列を足した最新のテンプレート
-const HEADER_LATEST = [...HEADER_FULL, "google_place_id"];
-const HEADERS = [HEADER, HEADER_FULL, HEADER_LATEST].map((h) => h.join(","));
+const HEADER_PLACE = [...HEADER_FULL, "google_place_id"];
+// 冬季閉鎖の列を足した最新のテンプレート
+const HEADER_LATEST = [...HEADER_PLACE, "winter_closed_from", "winter_closed_to", "winter_closure_note"];
+const HEADERS = [HEADER, HEADER_FULL, HEADER_PLACE, HEADER_LATEST].map((h) => h.join(","));
+const MAX_DAY = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const isMonthDay = (v) => /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(v) && Number(v.slice(3)) <= MAX_DAY[Number(v.slice(0, 2)) - 1];
 
 function parseCsv(text) {
   const rows = [];
@@ -104,6 +108,13 @@ rows.forEach((cells, i) => {
   if (r.google_place_id && !/^[A-Za-z0-9_-]{10,300}$/.test(r.google_place_id)) {
     err(`google_place_id の形が正しくありません（「ChIJ」から始まる英数字）: "${r.google_place_id}"`);
   }
+  for (const k of ["winter_closed_from", "winter_closed_to"]) {
+    if (r[k] && !isMonthDay(r[k])) err(`${k} は MM-DD の形で、ある日付にしてください（例：12-01）: "${r[k]}"`);
+  }
+  if (Boolean(r.winter_closed_from) !== Boolean(r.winter_closed_to)) err("winter_closed_from と winter_closed_to は両方書くか、両方空にしてください");
+  if (r.winter_closed_from && r.winter_closed_from === r.winter_closed_to) err("冬季閉鎖の始まりと終わりが同じ日です");
+  if (r.winter_closure_note && !r.winter_closed_from) err("winter_closure_note は冬季閉鎖の期間があるときだけ書けます");
+  if ((r.winter_closure_note ?? "").length > 100) err("winter_closure_note は100文字以内にしてください");
 });
 
 if (errors.length) {

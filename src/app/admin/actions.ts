@@ -5,6 +5,7 @@ import { CAMPSITE_IMAGES_TAG, CAMPSITE_IMAGE_BUCKET, MAX_CAMPSITE_IMAGES } from 
 import { parseFacilities } from "@/lib/facility-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLACE_ID_ERROR, parsePlaceId } from "@/lib/place-id";
+import { parseWinterClosure } from "@/lib/closure";
 
 // どの操作も DB の RLS で「運営だけ」に制限している。ここでも先に確かめて、わかりやすいエラーにする
 async function adminClient() {
@@ -158,6 +159,8 @@ export async function updateFacilities(
   if (!parsed.ok) return { error: parsed.error, saved: false };
   const placeId = parsePlaceId(formData.get("google_place_id"));
   if (placeId === undefined) return { error: PLACE_ID_ERROR, saved: false };
+  const closure = parseWinterClosure(formData);
+  if (!closure.ok) return { error: closure.error, saved: false };
 
   const { error } = await supabase
     .from("campsites")
@@ -168,6 +171,7 @@ export async function updateFacilities(
       has_bath: formData.get("has_bath") === "yes",
       ...parsed.values,
       google_place_id: placeId,
+      ...closure.values,
     })
     .eq("id", campsiteId);
   if (error) {

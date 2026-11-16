@@ -147,6 +147,10 @@ export type Campsite = Facilities & {
   official_url: string | null;
   /** Googleマップの Place ID。null = 未登録（地図リンクは座標で開く） */
   google_place_id: string | null;
+  /** 冬季閉鎖（毎年同じ月日 'MM-DD'。両方 null = 閉鎖なし） */
+  winter_closed_from: string | null;
+  winter_closed_to: string | null;
+  winter_closure_note: string | null;
   /** 数字があれば「おすすめ」。小さいほど先に表示する */
   featured_rank: number | null;
   created_at: string;

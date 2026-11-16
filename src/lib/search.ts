@@ -157,8 +157,11 @@ export function pickRecommended(
   summaries: Record<string, CheckinSummary>,
   month: number,
   limit: number,
+  /** 今日が冬季閉鎖中か（閉鎖中はおすすめしない） */
+  isClosed: (c: Campsite) => boolean = () => false,
 ): { items: Campsite[]; hasAuto: boolean } {
   const items = [...campsites]
+    .filter((c) => !isClosed(c))
     .filter((c) => c.featured_rank != null || (summaries[c.id]?.count ?? 0) > 0)
     .sort(byRecommended(summaries, month))
     .slice(0, limit);
@@ -297,12 +300,17 @@ export function searchCampsites(
   f: Filters,
   /** 日本時間の今月（おすすめ順で使う） */
   currentMonth: number,
+  /** 今日が冬季閉鎖中か（どの並び順でも閉鎖中を後ろに回す） */
+  isClosed: (c: Campsite) => boolean = () => false,
 ): SearchResult {
   const { checks, matched, noData } = run(campsites, summaries, f);
 
   const warmest = (c: Campsite) => (f.month ? summaries[c.id]?.monthAvgTemp[f.month] ?? -Infinity : -Infinity);
   const recommended = byRecommended(summaries, currentMonth);
+  const closed = new Set(matched.filter(isClosed).map((c) => c.id));
   const sorted = [...matched].sort((a, b) => {
+    const byClosed = Number(closed.has(a.id)) - Number(closed.has(b.id));
+    if (byClosed) return byClosed;
     if (f.sort === "new") return byNewest(a, b);
     if (f.sort === "recommend") return recommended(a, b);
     if (f.sort === "pref") return byPrefecture(a.prefecture, b.prefecture) || a.name.localeCompare(b.name, "ja");

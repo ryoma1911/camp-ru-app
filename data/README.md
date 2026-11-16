@@ -27,8 +27,10 @@
 | has_wifi | Wi-Fi があるか `true` / `false`。空欄可 | `false` |
 | payment_methods | 決済方法：`cash`（現金）/ `card`（カード）。空欄可 | `"{cash,card}"` |
 | google_place_id | Googleマップの Place ID。入れると地図リンクが施設名で開く。Googleマップに登録がなければ空欄（座標で開く） | `ChIJN1t_tDeuEmsRUsoyG83frY4` |
+| winter_closed_from / winter_closed_to | 冬季閉鎖の期間（毎年同じ月日、`MM-DD`）。年をまたいでよい。閉鎖なしなら両方空欄 | `12-01` / `03-31` |
+| winter_closure_note | 冬季閉鎖の補足（100文字まで）。空欄可 | `積雪により変わることがあります` |
 
-has_kitchen から payment_methods までの7列は、あとから足した設備の列です。空欄にすると「未入力」になり、キャンプ場ページでは空欄で表示されます。古いテンプレート（この7列や google_place_id の列がない CSV）もそのまま取り込めます。Place ID は Google の「Place ID Finder」で調べられます。複数の値を書くときは、`,` を含むので `"{paid,take_home}"` のようにダブルクォートで囲みます。取り込んだあとは、運営用の管理画面（`/admin` → キャンプ場の「設備・地図」）でも直せます。
+has_kitchen から payment_methods までの7列は、あとから足した設備の列です。空欄にすると「未入力」になり、キャンプ場ページでは空欄で表示されます。古いテンプレート（この7列や google_place_id・冬季閉鎖の列がない CSV）もそのまま取り込めます。Place ID は Google の「Place ID Finder」で調べられます。複数の値を書くときは、`,` を含むので `"{paid,take_home}"` のようにダブルクォートで囲みます。取り込んだあとは、運営用の管理画面（`/admin` → キャンプ場の「設備・地図」）でも直せます。
 
 例の値は書き方の説明用です。実際の値は必ず公式サイトで確認してください。
 
