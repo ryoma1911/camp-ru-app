@@ -44,7 +44,6 @@ async function ConditionsContent({ params, searchParams }: Pick<Props, "params" 
   // 月の指定がなければ今月（日付で変わるので、リクエストのたびに決める）
   await connection();
   const month = parseMonth(query.month) ?? currentMonthInJapan();
-  const temp = stats.months[month - 1];
 
   return (
     <div className="space-y-6">
@@ -100,18 +99,6 @@ async function ConditionsContent({ params, searchParams }: Pick<Props, "params" 
               })}
             </ul>
           </nav>
-
-          {temp.avgMinTemp != null && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-stone-200 bg-white p-4">
-                <p className="text-xs font-medium text-stone-500">① {month}月の明け方の最低気温</p>
-                <p className="mt-1 text-xl font-bold leading-tight">平均 {temp.avgMinTemp}℃</p>
-                <p className="mt-1 text-xs text-stone-500">
-                  いちばん冷えた記録 {temp.coldest}℃・気温の記録 {temp.tempCount}件
-                </p>
-              </div>
-            </div>
-          )}
 
           <MonthConditionsSection conditions={stats.conditions[month - 1]} />
         </>

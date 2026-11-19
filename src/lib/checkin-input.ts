@@ -1,5 +1,16 @@
 import "server-only";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE, SLEEP_QUALITY } from "@/lib/labels";
+import {
+  FIRE_STATUS,
+  HEATER,
+  MAX_NIGHTS,
+  PARTY_TYPE,
+  PEG_NEEDED,
+  SLEEPING_BAG_TYPE,
+  SLEEP_QUALITY,
+  WEATHER,
+} from "@/lib/labels";
+import { createSupabasePublicClient } from "@/lib/supabase/server";
+import { estimateNightMinTemp } from "@/lib/weather";
 
 export type CheckinFormState = { error: string | null };
 
@@ -8,6 +19,7 @@ export const PHOTO_BUCKET = "checkin-photos";
 
 export type CheckinFields = {
   visited_on: string;
+  nights: number;
   min_temp_c: number | null;
   temp_measured: boolean;
   temp_at_dawn: boolean;
@@ -18,6 +30,7 @@ export type CheckinFields = {
   bug_level: number | null;
   party_type: keyof typeof PARTY_TYPE | null;
   heaters: (keyof typeof HEATER)[] | null;
+  weather: (keyof typeof WEATHER)[] | null;
   comment: string | null;
   photo_reuse_ok: boolean;
 };
@@ -41,6 +54,13 @@ function heaters(formData: FormData): (keyof typeof HEATER)[] | null | undefined
   return values.length ? values : null;
 }
 
+/** 天気（複数）。決まった値だけを決まった順に。1つも選んでいなければ記録なし（null） */
+function weather(formData: FormData): (keyof typeof WEATHER)[] | null {
+  const picked = new Set(formData.getAll("weather").map(String));
+  const values = (Object.keys(WEATHER) as (keyof typeof WEATHER)[]).filter((k) => picked.has(k));
+  return values.length ? values : null;
+}
+
 /** 投稿フォームの値をチェックして DB に入れる形にする。問題があればエラー文を返す */
 export function parseCheckinForm(
   formData: FormData,
@@ -50,6 +70,10 @@ export function parseCheckinForm(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(visitedOn) || Number.isNaN(Date.parse(visitedOn))) {
     return { ok: false, error: "行った日を選んでください。" };
   }
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
+  if (visitedOn > today) return { ok: false, error: "行った日（1泊目）は今日までの日にしてください。" };
+  const nights = intInRange(formData.get("nights") || "1", 1, MAX_NIGHTS);
+  if (nights == null) return { ok: false, error: `泊数は1〜${MAX_NIGHTS}泊から選んでください。` };
   const pegNeeded = pick(PEG_NEEDED, formData.get("peg_needed"));
   const fireStatus = pick(FIRE_STATUS, formData.get("fire_status"));
   if (!pegNeeded || !fireStatus) {
@@ -82,6 +106,7 @@ export function parseCheckinForm(
     photoPaths,
     fields: {
       visited_on: visitedOn,
+      nights,
       min_temp_c: minTemp,
       temp_measured: formData.get("temp_measured") === "yes",
       temp_at_dawn: formData.get("temp_at_dawn") !== "no",
@@ -95,9 +120,28 @@ export function parseCheckinForm(
       // 車の乗り入れ・炊事場のお湯はフォームから外した（列は残すが、ここでは触らない）
       party_type: pick(PARTY_TYPE, formData.get("party_type")),
       heaters: heaterValues,
+      weather: weather(formData),
       comment: comment || null,
       // 写真がない投稿は許可しても意味がないので false にする
       photo_reuse_ok: formData.get("photo_reuse_ok") === "yes" && photoPaths.length > 0,
     },
   };
+}
+
+/**
+ * 気温が「わからない」ときの推定値（気象データ）。保存のたびに、その時の日付・泊数で取り直す。
+ * 本人が気温を入れたら推定値は消す。取れなかったときも空にする（古い日付の推定値を残さないため）
+ */
+export async function estimateFields(
+  campsiteId: string,
+  fields: Pick<CheckinFields, "visited_on" | "nights" | "min_temp_c">,
+): Promise<{ est_min_temp_c: number | null; est_fetched_at: string | null }> {
+  if (fields.min_temp_c != null) return { est_min_temp_c: null, est_fetched_at: null };
+  const { data } = await createSupabasePublicClient()
+    .from("campsites")
+    .select("lat, lng")
+    .eq("id", campsiteId)
+    .maybeSingle();
+  const est = await estimateNightMinTemp(data?.lat ?? null, data?.lng ?? null, fields.visited_on, fields.nights);
+  return { est_min_temp_c: est, est_fetched_at: est != null ? new Date().toISOString() : null };
 }

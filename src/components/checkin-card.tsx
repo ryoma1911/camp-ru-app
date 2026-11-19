@@ -7,8 +7,10 @@ import {
   PEG_NEEDED,
   SLEEPING_BAG_TYPE,
   SLEEP_QUALITY,
+  WEATHER,
   type Checkin,
 } from "@/lib/labels";
+import { EST_TEMP_NOTE, stayLabel, tempOf } from "@/lib/stay";
 import { supabaseUrl } from "@/lib/supabase/env";
 
 /** ソト活1件の表示。heading（投稿者名やキャンプ場名）と actions（編集・削除）は呼び出し側で決める */
@@ -21,10 +23,7 @@ export function CheckinCard({
   heading: React.ReactNode;
   actions?: React.ReactNode;
 }) {
-  const temp =
-    c.min_temp_c != null
-      ? `${c.temp_at_dawn ? "明け方" : "最低"} ${Number(c.min_temp_c)}℃（${c.temp_measured ? "実測" : "体感"}）`
-      : null;
+  const t = tempOf(c);
   const photos = [...c.checkin_photos].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
@@ -33,14 +32,29 @@ export function CheckinCard({
         <span className="font-medium">{heading}</span>
         {/* 日付から、この投稿1件のページ（シェア用）に移れる */}
         <Link href={`/checkins/${c.id}`} className="shrink-0 text-stone-500 underline-offset-4 hover:underline">
-          <time>{c.visited_on.replaceAll("-", "/")}</time>
+          <time dateTime={c.visited_on}>{stayLabel(c)}</time>
         </Link>
       </div>
 
       <dl className="grid grid-cols-[5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
+        {c.weather && (
+          <>
+            <dt className="text-stone-500">天気</dt>
+            <dd>{c.weather.map((w) => WEATHER[w]).join("・")}</dd>
+          </>
+        )}
         <dt className="text-stone-500">気温</dt>
         <dd>
-          {temp ?? "記録なし"}
+          {!t ? (
+            "記録なし"
+          ) : t.estimated ? (
+            // 本人の記録ではないので、点線の枠で区別する
+            <span title={EST_TEMP_NOTE} className="rounded border border-dashed border-stone-400 px-1.5 py-0.5 text-stone-700">
+              {t.label} {t.value}℃（気象データからの推定）
+            </span>
+          ) : (
+            `${t.label} ${t.value}℃（${c.temp_measured ? "実測" : "体感"}）`
+          )}
           {c.sleep_quality && (
             <span className="ml-2 text-stone-600">
               {c.sleeping_bag_type && `${SLEEPING_BAG_TYPE[c.sleeping_bag_type]}の寝袋で`}
@@ -101,7 +115,7 @@ export function CheckinCard({
  */
 export function CheckinRow({ checkin: c }: { checkin: Checkin }) {
   const photo = [...c.checkin_photos].sort((a, b) => a.sort_order - b.sort_order)[0];
-  const temp = c.min_temp_c != null ? `${c.temp_at_dawn ? "明け方" : "最低"} ${Number(c.min_temp_c)}℃` : null;
+  const t = tempOf(c);
   return (
     <li>
       <Link href={`/checkins/${c.id}`} className="flex items-center gap-3 px-3 py-3 hover:bg-stone-50">
@@ -119,13 +133,25 @@ export function CheckinRow({ checkin: c }: { checkin: Checkin }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className="truncate font-medium">{c.profiles?.display_name ?? "キャンパー"}</span>
-            <time className="shrink-0 text-xs text-stone-500">{c.visited_on.replaceAll("-", "/")}</time>
+            <time dateTime={c.visited_on} className="shrink-0 text-xs text-stone-500">
+              {stayLabel(c)}
+            </time>
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
             {c.party_type && (
               <span className="rounded bg-stone-100 px-2 py-0.5 text-xs text-stone-700">{PARTY_TYPE[c.party_type]}</span>
             )}
-            <span className={temp ? "" : "text-stone-400"}>{temp ?? "気温の記録なし"}</span>
+            {!t ? (
+              <span className="text-stone-400">気温の記録なし</span>
+            ) : t.estimated ? (
+              <span title={EST_TEMP_NOTE} className="rounded border border-dashed border-stone-400 px-1.5 text-stone-700">
+                {t.label} {t.value}℃（推定）
+              </span>
+            ) : (
+              <span>
+                {t.label} {t.value}℃
+              </span>
+            )}
           </span>
         </span>
         <span aria-hidden className="shrink-0 text-stone-400">

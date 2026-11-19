@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { CAMPSITE_IMAGES_TAG } from "@/lib/campsite-images";
 import { SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
 import { checkinTag } from "@/lib/checkin-share";
-import { PHOTO_BUCKET, parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
+import { PHOTO_BUCKET, estimateFields, parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -29,7 +29,7 @@ export async function updateCheckin(
   // user_id も条件に入れ、自分の投稿以外は更新されないようにする（RLS でも制限している）
   const { data: updated, error } = await supabase
     .from("checkins")
-    .update(parsed.fields)
+    .update({ ...parsed.fields, ...(await estimateFields(target.campsiteId, parsed.fields)) })
     .eq("id", target.id)
     .eq("user_id", userId)
     .select("id");

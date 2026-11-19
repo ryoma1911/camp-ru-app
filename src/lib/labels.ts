@@ -81,6 +81,18 @@ export const HEATER = {
   none: "使わなかった",
 } as const;
 
+/** 天気（ソト活・任意・複数）。連泊でも滞在中をまとめて選ぶ。DB の domain weather_options と揃えること */
+export const WEATHER = {
+  sunny: "晴れ",
+  cloudy: "くもり",
+  rain: "雨",
+  snow: "雪",
+  windy: "強風",
+} as const;
+
+/** 泊数の選択肢（1〜7泊） */
+export const MAX_NIGHTS = 7;
+
 export const BUG_LEVEL = {
   1: "虫は少ない",
   2: "虫はふつう",
@@ -115,7 +127,21 @@ export const PAYMENT = {
   card: "カード",
 } as const;
 
-/** 追加の設備6項目。どれも null =「未入力」（画面では空欄） */
+/** トイレ。none（なし）はほかと一緒に選べない */
+export const TOILET = {
+  flush: "水洗",
+  simple: "簡易（汲み取り・仮設）",
+  none: "なし",
+} as const;
+
+/** サウナ。none（なし）はほかと一緒に選べない */
+export const SAUNA = {
+  public: "パブリック",
+  private: "貸切",
+  none: "なし",
+} as const;
+
+/** あとから足した設備（炊事場〜サウナ）。どれも null =「未入力」（画面では空欄） */
 export type Facilities = {
   has_kitchen: boolean | null;
   garbage: (keyof typeof GARBAGE)[] | null;
@@ -125,9 +151,12 @@ export type Facilities = {
   shop_items: (keyof typeof SHOP_ITEM)[] | null;
   has_wifi: boolean | null;
   payment_methods: (keyof typeof PAYMENT)[] | null;
+  toilet_types: (keyof typeof TOILET)[] | null;
+  sauna_types: (keyof typeof SAUNA)[] | null;
 };
 
-export const FACILITY_COLUMNS = "has_kitchen, garbage, ac_power, has_shop, shop_items, has_wifi, payment_methods";
+export const FACILITY_COLUMNS =
+  "has_kitchen, garbage, ac_power, has_shop, shop_items, has_wifi, payment_methods, toilet_types, sauna_types";
 
 export type Campsite = Facilities & {
   id: string;
@@ -160,8 +189,13 @@ export type Checkin = {
   id: string;
   user_id: string;
   campsite_id: string;
+  /** 1泊目の日 */
   visited_on: string;
+  /** 泊数（1〜7） */
+  nights: number;
   min_temp_c: number | null;
+  /** 気温が「わからない」ときに、気象データ（Open-Meteo）で推定した最低気温。集計には使わない */
+  est_min_temp_c: number | null;
   temp_measured: boolean;
   temp_at_dawn: boolean;
   /** 快適温度（sleeping_bag_comfort_c）はタイプに移したので使わない */
@@ -172,6 +206,7 @@ export type Checkin = {
   bug_level: keyof typeof BUG_LEVEL | null;
   party_type: keyof typeof PARTY_TYPE | null;
   heaters: (keyof typeof HEATER)[] | null;
+  weather: (keyof typeof WEATHER)[] | null;
   comment: string | null;
   /** 投稿者が写真をキャンプ場の紹介写真に使ってよいと許可したか */
   photo_reuse_ok: boolean;

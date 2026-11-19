@@ -7,13 +7,16 @@ import {
   BUG_LEVEL,
   FIRE_STATUS,
   HEATER,
+  MAX_NIGHTS,
   PARTY_TYPE,
   PEG_NEEDED,
   SLEEPING_BAG_HINT,
   SLEEPING_BAG_TYPE,
   SLEEP_QUALITY,
+  WEATHER,
   type Checkin,
 } from "@/lib/labels";
+import { stayLabel } from "@/lib/stay";
 import { PhotoPicker } from "./photo-picker";
 
 type Props = {
@@ -43,6 +46,8 @@ export function CheckinForm({ action, userId, initial, submitLabel = "ソト活�
   const [photoCount, setPhotoCount] = useState(initial?.checkin_photos.length ?? 0);
   const [dirty, setDirty] = useState(false);
   const [today] = useState(todayInJapan);
+  const [visitedOn, setVisitedOn] = useState(initial?.visited_on ?? "");
+  const [nights, setNights] = useState(initial?.nights ?? 1);
 
   /** 入力があれば確認してから、元のページに戻る */
   function cancel() {
@@ -65,19 +70,43 @@ export function CheckinForm({ action, userId, initial, submitLabel = "ソト活�
       onChange={() => setDirty(true)}
       className="space-y-8"
     >
-      <Field label="行った日">
-        <input
-          type="date"
-          name="visited_on"
-          required
-          defaultValue={initial?.visited_on ?? today}
-          max={today}
-          className="h-11 rounded-lg border border-stone-300 bg-white px-3"
-        />
+      <Field label="行った日（1泊目）・泊数" required>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            name="visited_on"
+            required
+            aria-label="1泊目の日"
+            defaultValue={initial?.visited_on ?? today}
+            max={today}
+            onChange={(e) => setVisitedOn(e.target.value)}
+            className="h-11 rounded-lg border border-stone-300 bg-white px-3"
+          />
+          <select
+            name="nights"
+            aria-label="泊数"
+            value={nights}
+            onChange={(e) => setNights(Number(e.target.value))}
+            className="h-11 rounded-lg border border-stone-300 bg-white px-3"
+          >
+            {Array.from({ length: MAX_NIGHTS }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}泊
+              </option>
+            ))}
+          </select>
+          {nights > 1 && (
+            <span className="text-sm text-stone-600">{stayLabel({ visited_on: visitedOn || today, nights })}</span>
+          )}
+        </div>
+      </Field>
+
+      <Field label="天気" hint="滞在中をまとめて・複数選べます">
+        <CheckChips name="weather" options={WEATHER} defaultValues={initial?.weather ?? []} />
       </Field>
 
       <Section number="①" title="気温と睡眠">
-        <Field label="夜の最低気温">
+        <Field label="夜の最低気温" hint="連泊はいちばん冷えた夜">
           <div className="flex flex-wrap items-center gap-3">
             <select
               name="min_temp_c"
@@ -97,6 +126,9 @@ export function CheckinForm({ action, userId, initial, submitLabel = "ソト活�
               defaultValue={yesNo(initial?.temp_measured) ?? "no"}
             />
           </div>
+          <p className="text-xs text-stone-500">
+            「わからない」のときは、気象データからこの場所の夜の最低気温を推定して表示します（集計には入れません）。
+          </p>
         </Field>
         <Field label="いつの気温？">
           <Chips
@@ -273,6 +305,36 @@ function Chips({
           <span className="inline-flex min-h-11 flex-col items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-sm leading-tight peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
             {label}
             {hints?.[value] && <span className="text-[10px] opacity-75">{hints[value]}</span>}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** 複数選べるボタン（中身はチェックボックス） */
+function CheckChips({
+  name,
+  options,
+  defaultValues,
+}: {
+  name: string;
+  options: Record<string, string>;
+  defaultValues: string[];
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(options).map(([value, label]) => (
+        <label key={value} className="cursor-pointer">
+          <input
+            type="checkbox"
+            name={name}
+            value={value}
+            defaultChecked={defaultValues.includes(value)}
+            className="peer sr-only"
+          />
+          <span className="inline-flex min-h-11 items-center rounded-full border border-stone-300 bg-white px-4 text-sm peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
+            {label}
           </span>
         </label>
       ))}

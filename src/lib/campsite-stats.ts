@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE, WEATHER } from "@/lib/labels";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 type Row = {
@@ -13,6 +13,7 @@ type Row = {
   bug_level: number | null;
   party_type: keyof typeof PARTY_TYPE | null;
   heaters: (keyof typeof HEATER)[] | null;
+  weather: (keyof typeof WEATHER)[] | null;
 };
 
 /** 虫の棒グラフの名前（棒の見出しが「虫」なので短く） */
@@ -21,19 +22,11 @@ export const BUG_BARS = { "1": "少ない", "2": "ふつう", "3": "多い" } as
 /** 選択肢ごとの件数（多い順）。0件の選択肢も残して分布を表示できるようにする */
 export type Breakdown<K extends string> = { key: K; count: number }[];
 
-export type MonthStat = {
-  month: number; // 1〜12
-  checkinCount: number;
-  tempCount: number; // 気温が入っている件数
-  avgMinTemp: number | null;
-  coldest: number | null;
-};
-
 /** 選択肢ごとの件数と、その項目を記録した投稿の数（割合の分母） */
 export type Tally<K extends string> = { items: Breakdown<K>; total: number };
 
 /**
- * ある月の現地コンディション（焚き火・寝袋・暖房・虫・誰と）。年をまたいで同じ月をまとめて数える。
+ * ある月の現地コンディション（焚き火・寝袋・暖房・虫・誰と・天気）。年をまたいで同じ月をまとめて数える。
  * 任意の項目は「わからない」（null）を数えず、記録した投稿の数を分母にする
  */
 export type MonthConditions = {
@@ -47,13 +40,18 @@ export type MonthConditions = {
   heaters: Tally<keyof typeof HEATER>;
   bug: Tally<keyof typeof BUG_BARS>;
   party: Tally<keyof typeof PARTY_TYPE>;
+  /** 天気（1件の投稿で複数あれば、それぞれ数える） */
+  weather: Tally<keyof typeof WEATHER>;
 };
 
 export type CampsiteStats = {
   total: number;
   /** 地面の固さは月で変わりにくいので全期間で出す */
   peg: Breakdown<keyof typeof PEG_NEEDED>;
-  months: MonthStat[];
+  /** いちばん冷えた記録（本人が入れた気温だけ。気象データの推定値は使わない） */
+  coldest: { temp: number; month: number } | null;
+  /** 気温が入っている投稿の数 */
+  tempCount: number;
   /** 月ごとの現地コンディション（[0] = 1月 … [11] = 12月） */
   conditions: MonthConditions[];
 };
@@ -157,28 +155,26 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
   const { data, error } = await supabase
     .from("checkins")
     .select(
-      "visited_on, min_temp_c, sleeping_bag_type, peg_needed, fire_status, bug_level, party_type, heaters",
+      "visited_on, min_temp_c, sleeping_bag_type, peg_needed, fire_status, bug_level, party_type, heaters, weather",
     )
     .eq("campsite_id", campsiteId);
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
   const rows = (data ?? []) as Row[];
 
-  const months: MonthStat[] = Array.from({ length: 12 }, (_, i) => {
-    const inMonth = rows.filter((r) => Number(r.visited_on.slice(5, 7)) === i + 1);
-    const temps = inMonth.map((r) => r.min_temp_c).filter((t): t is number => t != null).map(Number);
-    return {
-      month: i + 1,
-      checkinCount: inMonth.length,
-      tempCount: temps.length,
-      avgMinTemp: temps.length ? round1(temps.reduce((a, b) => a + b, 0) / temps.length) : null,
-      coldest: temps.length ? Math.min(...temps) : null,
-    };
-  });
+  let coldest: CampsiteStats["coldest"] = null;
+  let tempCount = 0;
+  for (const r of rows) {
+    if (r.min_temp_c == null) continue;
+    tempCount++;
+    const t = Number(r.min_temp_c);
+    if (!coldest || t < coldest.temp) coldest = { temp: t, month: Number(r.visited_on.slice(5, 7)) };
+  }
 
   return {
     total: rows.length,
     peg: breakdown(PEG_NEEDED, rows.map((r) => r.peg_needed)),
-    months,
+    coldest,
+    tempCount,
     conditions: Array.from({ length: 12 }, (_, i) =>
       conditionsOf(i + 1, rows.filter((r) => Number(r.visited_on.slice(5, 7)) === i + 1)),
     ),
@@ -190,6 +186,7 @@ function conditionsOf(month: number, rows: Row[]): MonthConditions {
   const parties = rows.flatMap((r) => (r.party_type ? [r.party_type] : []));
   const heaterRows = rows.filter((r) => r.heaters?.length);
   const bags = rows.flatMap((r) => (r.sleeping_bag_type ? [r.sleeping_bag_type] : []));
+  const weatherRows = rows.filter((r) => r.weather?.length);
   return {
     month,
     count: rows.length,
@@ -198,5 +195,6 @@ function conditionsOf(month: number, rows: Row[]): MonthConditions {
     heaters: { items: breakdown(HEATER, heaterRows.flatMap((r) => r.heaters ?? [])), total: heaterRows.length },
     bug: { items: breakdown(BUG_BARS, bugs), total: bugs.length },
     party: { items: breakdown(PARTY_TYPE, parties), total: parties.length },
+    weather: { items: breakdown(WEATHER, weatherRows.flatMap((r) => r.weather ?? [])), total: weatherRows.length },
   };
 }

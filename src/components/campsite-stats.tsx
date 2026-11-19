@@ -4,19 +4,14 @@ import {
   type Breakdown,
   type CampsiteStats as Stats,
   type MonthConditions,
-  type MonthStat,
 } from "@/lib/campsite-stats";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
-
-// 0℃を境に、寒い側＝青・暖かい側＝オレンジ（色覚の違いがあっても区別できる組み合わせを検証済み）
-const COLD = "#0369a1";
-const WARM = "#c2410c";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE, WEATHER } from "@/lib/labels";
 
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
 /**
  * キャンプ場ページ上部の「現地コンディション」。投稿の羅列より先に結論が見えるようにする。
- * 焚き火・寝袋・暖房・虫・誰とは今月（month）の分を出し、月別のページへ案内する
+ * 焚き火・寝袋・暖房・虫・誰と・天気は今月（month）の分を出し、月別のページへ案内する
  */
 export function CampsiteStats({ stats, month, slug }: { stats: Stats; month: number; slug: string }) {
   if (stats.total === 0) {
@@ -36,14 +31,10 @@ export function CampsiteStats({ stats, month, slug }: { stats: Stats; month: num
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <TempTile months={stats.months} />
+        <TempTile stats={stats} />
         <PegTile stats={stats} />
         <FireTile conditions={current} />
       </div>
-
-      <Card title="① 月別の明け方の最低気温" note="各月の平均（℃）。記録のない月は薄い文字">
-        <MonthlyTempChart months={stats.months} />
-      </Card>
 
       <Card title="② 地面の固さ" note="必要だったペグ・全期間">
         <MeterList items={stats.peg} labels={PEG_NEEDED} total={stats.total} />
@@ -55,7 +46,7 @@ export function CampsiteStats({ stats, month, slug }: { stats: Stats; month: num
 }
 
 /**
- * ある月の焚き火・寝袋・暖房・虫・誰と。キャンプ場ページ（今月）と月別ページで使う。
+ * ある月の焚き火・寝袋・暖房・虫・誰と・天気。キャンプ場ページ（今月）と月別ページで使う。
  * 任意の項目は記録した投稿の数を分母にする（「わからない」は数えない。暖房は複数選べるので合計が100%を超えることがある）
  */
 export function MonthConditionsSection({
@@ -101,6 +92,9 @@ export function MonthConditionsSection({
           <Card title="誰と" note={recorded(c.party.total)}>
             <MeterList items={c.party.items} labels={PARTY_TYPE} total={c.party.total} />
           </Card>
+          <Card title="天気" note={recorded(c.weather.total)}>
+            <MeterList items={c.weather.items} labels={WEATHER} total={c.weather.total} />
+          </Card>
         </div>
       )}
     </div>
@@ -119,17 +113,9 @@ function Tile({ label, value, sub }: { label: string; value: string; sub: string
   );
 }
 
-function TempTile({ months }: { months: MonthStat[] }) {
-  const withTemp = months.filter((m) => m.coldest != null);
-  if (withTemp.length === 0) return <Tile label="① 気温" value="記録なし" sub="気温の入った投稿がまだありません" />;
-  const coldest = withTemp.reduce((a, b) => ((b.coldest ?? 0) < (a.coldest ?? 0) ? b : a));
-  return (
-    <Tile
-      label="① いちばん冷えた記録"
-      value={`${coldest.coldest}℃`}
-      sub={`${coldest.month}月・気温の記録 ${withTemp.reduce((n, m) => n + m.tempCount, 0)}件`}
-    />
-  );
+function TempTile({ stats: { coldest, tempCount } }: { stats: Stats }) {
+  if (!coldest) return <Tile label="① 気温" value="記録なし" sub="気温の入った投稿がまだありません" />;
+  return <Tile label="① いちばん冷えた記録" value={`${coldest.temp}℃`} sub={`${coldest.month}月・気温の記録 ${tempCount}件`} />;
 }
 
 function PegTile({ stats }: { stats: Stats }) {
@@ -150,100 +136,6 @@ function FireTile({ conditions: c }: { conditions: MonthConditions }) {
       value={`${pct(count("skipped_wind"), tried)}%`}
       sub={`焚き火をしようとした${tried}件中${count("skipped_wind")}件`}
     />
-  );
-}
-
-/* ---------- 月別の気温（0℃を境にした上下の棒） ---------- */
-
-function MonthlyTempChart({ months }: { months: MonthStat[] }) {
-  const values = months.map((m) => m.avgMinTemp).filter((v): v is number => v != null);
-  // 目盛りは最低でも ±10℃ を確保し、0℃の線が常に見えるようにする
-  const hi = Math.max(10, ...values.map((v) => Math.ceil(v / 5) * 5));
-  const lo = Math.min(-10, ...values.map((v) => Math.floor(v / 5) * 5));
-  const H = 160;
-  const y = (v: number) => ((hi - v) / (hi - lo)) * H;
-  const zero = y(0);
-
-  return (
-    <figure>
-      <div className="relative" style={{ height: H + 24 }}>
-        {/* 0℃の基準線と目盛り */}
-        <div className="absolute inset-x-0 border-t border-stone-300" style={{ top: zero }} />
-        <span className="absolute -top-2 right-0 text-[10px] text-stone-400">{hi}℃</span>
-        <span className="absolute right-0 text-[10px] text-stone-400" style={{ top: zero - 14 }}>
-          0℃
-        </span>
-        <span className="absolute right-0 text-[10px] text-stone-400" style={{ top: H - 12 }}>
-          {lo}℃
-        </span>
-
-        <div className="absolute inset-0 grid grid-cols-12 gap-1 pr-8">
-          {months.map((m) => {
-            const v = m.avgMinTemp;
-            const tip =
-              v == null
-                ? `${m.month}月：記録なし`
-                : `${m.month}月：平均 ${v}℃（最低 ${m.coldest}℃・${m.tempCount}件）`;
-            return (
-              <div key={m.month} className="group relative" title={tip}>
-                {v != null && (
-                  <>
-                    <div
-                      className="absolute inset-x-[15%] group-hover:opacity-80"
-                      style={{
-                        top: Math.min(y(v), zero),
-                        height: Math.max(2, Math.abs(y(v) - zero)),
-                        background: v < 0 ? COLD : WARM,
-                        // データ側の端だけ丸める（基準線側は平ら）
-                        borderRadius: v < 0 ? "0 0 4px 4px" : "4px 4px 0 0",
-                      }}
-                    />
-                    <span
-                      className="absolute inset-x-0 text-center text-[11px] font-medium text-stone-700"
-                      style={{ top: v < 0 ? y(v) + 2 : y(v) - 16 }}
-                    >
-                      {v}
-                    </span>
-                  </>
-                )}
-                <span
-                  className={`absolute inset-x-0 text-center text-[11px] ${v == null ? "text-stone-300" : "text-stone-600"}`}
-                  style={{ top: H + 6 }}
-                >
-                  {m.month}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <figcaption className="mt-1 text-right text-[11px] text-stone-400">月</figcaption>
-
-      {/* 画面読み上げ用の表 */}
-      <table className="sr-only">
-        <caption>月別の明け方の最低気温（平均）</caption>
-        <thead>
-          <tr>
-            <th>月</th>
-            <th>平均</th>
-            <th>最低</th>
-            <th>件数</th>
-          </tr>
-        </thead>
-        <tbody>
-          {months
-            .filter((m) => m.avgMinTemp != null)
-            .map((m) => (
-              <tr key={m.month}>
-                <td>{m.month}月</td>
-                <td>{m.avgMinTemp}℃</td>
-                <td>{m.coldest}℃</td>
-                <td>{m.tempCount}</td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
-    </figure>
   );
 }
 

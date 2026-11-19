@@ -94,6 +94,8 @@ export async function approveSubmission(id: string, _prev: ApproveState, formDat
       p_shop_items: f.shop_items,
       p_has_wifi: f.has_wifi,
       p_payment_methods: f.payment_methods,
+      p_toilet_types: f.toilet_types,
+      p_sauna_types: f.sauna_types,
       p_official_url: officialUrl,
       p_google_place_id: placeId,
       p_winter_closed_from: closure.values.winter_closed_from,

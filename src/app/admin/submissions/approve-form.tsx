@@ -23,13 +23,6 @@ export type SubmissionDraft = Facilities & {
   has_bath: boolean | null;
 };
 
-const FACILITIES = {
-  car_access: "車乗り入れ",
-  has_hot_water: "炊事場お湯",
-  has_shower: "シャワー",
-  has_bath: "風呂",
-} as const;
-
 const input = "h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm";
 
 /** 公開する内容（申請の内容を初期値にして、運営が公式サイトで確認して直す） */
@@ -111,24 +104,7 @@ export function ApproveForm({
           <Select name="fire_rule" options={FIRE_RULE} value={draft.fire_rule} />
         </Label>
       </div>
-      <fieldset>
-        <legend className="mb-1 text-xs text-stone-600">設備（公式サイトで確認できたものだけ）</legend>
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-          {Object.entries(FACILITIES).map(([key, label]) => (
-            <label key={key} className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                name={key}
-                value="yes"
-                defaultChecked={draft[key as keyof typeof FACILITIES] === true}
-                className="h-4 w-4 accent-emerald-700"
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <FacilityFields initial={draft} unknownLabel="未入力" />
+      <FacilityFields initial={draft} unknownLabel="未入力" basicOffLabel="なし" />
       <PlaceIdField />
       <WinterClosureFields />
       <Label text="運営のメモ">

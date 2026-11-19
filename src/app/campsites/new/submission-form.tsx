@@ -12,13 +12,6 @@ import { findAddressByPostal, submitCampsite, type SubmissionFormState } from ".
 
 export type ExistingCampsite = { slug: string; name: string; prefecture: string };
 
-const FACILITIES = {
-  car_access: "車乗り入れ",
-  has_hot_water: "炊事場お湯",
-  has_shower: "シャワー",
-  has_bath: "風呂",
-} as const;
-
 const INITIAL: SubmissionFormState = { error: null, done: false };
 
 /** フォームと完了画面。「続けて登録する」で key を変えて、空のフォームに戻す */
@@ -273,19 +266,7 @@ function SubmissionForm({
         <Field label="焚き火">
           <Chips name="fire_rule" options={FIRE_RULE} />
         </Field>
-        <Field label="設備" hint="あるものだけ">
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(FACILITIES).map(([key, label]) => (
-              <label key={key} className="cursor-pointer">
-                <input type="checkbox" name={key} value="yes" className="peer sr-only" />
-                <span className="inline-flex min-h-11 items-center rounded-full border border-stone-300 bg-white px-4 text-sm peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500">
-                  {label}
-                </span>
-              </label>
-            ))}
-          </div>
-        </Field>
-        <FacilityFields unknownLabel="わからない" />
+        <FacilityFields unknownLabel="わからない" basicOffLabel="わからない" />
         <Field label="運営へのひとこと">
           <textarea
             name="note"

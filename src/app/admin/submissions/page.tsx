@@ -4,7 +4,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { requireAdmin } from "@/lib/admin";
 import { isSimilarName } from "@/lib/campsite-match";
 import { getCampsites } from "@/lib/campsites";
-import { AC_POWER, FIRE_RULE, GARBAGE, LOCATION_TYPE, PAYMENT, SHOP_ITEM, SITE_STYLE } from "@/lib/labels";
+import { AC_POWER, FIRE_RULE, GARBAGE, LOCATION_TYPE, PAYMENT, SAUNA, SHOP_ITEM, SITE_STYLE, TOILET } from "@/lib/labels";
 import { rejectSubmission, approveSubmission } from "./actions";
 import { ApproveForm, type SubmissionDraft } from "./approve-form";
 
@@ -217,6 +217,10 @@ function Detail({
         </dd>
         <dt className="text-stone-500">決済方法</dt>
         <dd>{list(s.payment_methods, PAYMENT)}</dd>
+        <dt className="text-stone-500">トイレ</dt>
+        <dd>{list(s.toilet_types, TOILET)}</dd>
+        <dt className="text-stone-500">サウナ</dt>
+        <dd>{list(s.sauna_types, SAUNA)}</dd>
         <dt className="text-stone-500">ひとこと</dt>
         <dd className="whitespace-pre-wrap">{s.note ?? "なし"}</dd>
       </dl>

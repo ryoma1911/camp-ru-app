@@ -1,6 +1,6 @@
-// 設備6項目（炊事場・ゴミ・AC電源・売店・Wi-Fi・決済方法）をフォームから読み取る。
+// あとから足した設備（炊事場・ゴミ・AC電源・売店・Wi-Fi・決済方法・トイレ・サウナ）をフォームから読み取る。
 // 申請フォーム・承認フォーム・設備の編集画面で共通（入力欄は components/facility-fields.tsx）
-import { AC_POWER, GARBAGE, PAYMENT, SHOP_ITEM, type Facilities } from "@/lib/labels";
+import { AC_POWER, GARBAGE, PAYMENT, SAUNA, SHOP_ITEM, TOILET, type Facilities } from "@/lib/labels";
 
 /** あり / なし / 未入力 の3択。フォームの値は "yes" / "no" / "" */
 function yesNo(formData: FormData, key: string): boolean | null {
@@ -20,6 +20,14 @@ export function parseFacilities(formData: FormData): { ok: true; values: Facilit
   if (acPower?.includes("none") && acPower.length > 1) {
     return { ok: false, error: "AC電源の「なし」は、ほかと一緒に選べません。" };
   }
+  const toilets = many(formData, "toilet_types", TOILET);
+  if (toilets?.includes("none") && toilets.length > 1) {
+    return { ok: false, error: "トイレの「なし」は、ほかと一緒に選べません。" };
+  }
+  const saunas = many(formData, "sauna_types", SAUNA);
+  if (saunas?.includes("none") && saunas.length > 1) {
+    return { ok: false, error: "サウナの「なし」は、ほかと一緒に選べません。" };
+  }
   const hasShop = yesNo(formData, "has_shop");
   return {
     ok: true,
@@ -32,6 +40,8 @@ export function parseFacilities(formData: FormData): { ok: true; values: Facilit
       shop_items: hasShop === true ? many(formData, "shop_items", SHOP_ITEM) : null,
       has_wifi: yesNo(formData, "has_wifi"),
       payment_methods: many(formData, "payment_methods", PAYMENT),
+      toilet_types: toilets,
+      sauna_types: saunas,
     },
   };
 }

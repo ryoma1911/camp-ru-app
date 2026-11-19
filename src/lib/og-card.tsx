@@ -52,7 +52,7 @@ export async function renderCheckinCard(c: CheckinWithCampsite): Promise<ImageRe
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {tiles.map((t) => (
             <div key={t.label} style={{ display: "flex", alignItems: "baseline", gap: 18 }}>
-              <span style={{ width: 170, fontSize: 24, color: MINT }}>{t.label.replace("明け方の", "")}</span>
+              <span style={{ width: 170, fontSize: 24, color: MINT }}>{t.label.replace(/明け方の|夜の最低/, "")}</span>
               <span style={{ fontSize: 46, fontWeight: 700 }}>{t.value}</span>
             </div>
           ))}

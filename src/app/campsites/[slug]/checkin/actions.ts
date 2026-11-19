@@ -3,7 +3,7 @@
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
-import { parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
+import { estimateFields, parseCheckinForm, type CheckinFormState } from "@/lib/checkin-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function createCheckin(
@@ -21,7 +21,12 @@ export async function createCheckin(
 
   const { data: checkin, error } = await supabase
     .from("checkins")
-    .insert({ ...parsed.fields, user_id: userId, campsite_id: campsite.id })
+    .insert({
+      ...parsed.fields,
+      ...(await estimateFields(campsite.id, parsed.fields)),
+      user_id: userId,
+      campsite_id: campsite.id,
+    })
     .select("id")
     .single();
   if (error || !checkin) {

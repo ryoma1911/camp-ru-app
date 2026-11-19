@@ -15,7 +15,11 @@ const ARRAYS = {
   ac_power: ["extra_fee", "included", "none"],
   shop_items: ["gas", "firewood", "charcoal", "towel", "meal_kit", "toothbrush", "other"],
   payment_methods: ["cash", "card"],
+  toilet_types: ["flush", "simple", "none"],
+  sauna_types: ["public", "private", "none"],
 };
+// none（なし）はほかと一緒に書けない列
+const EXCLUSIVE_NONE = ["ac_power", "toilet_types", "sauna_types"];
 const REQUIRED = ["slug", "name", "prefecture", "address", "location_type", "site_style", "fire_rule"];
 const HEADER = [
   "slug", "name", "prefecture", "address", "lat", "lng", "location_type", "site_style",
@@ -28,9 +32,11 @@ const HEADER_FULL = [
 ];
 // Googleマップの Place ID の列を足した最新のテンプレート
 const HEADER_PLACE = [...HEADER_FULL, "google_place_id"];
-// 冬季閉鎖の列を足した最新のテンプレート
-const HEADER_LATEST = [...HEADER_PLACE, "winter_closed_from", "winter_closed_to", "winter_closure_note"];
-const HEADERS = [HEADER, HEADER_FULL, HEADER_PLACE, HEADER_LATEST].map((h) => h.join(","));
+// 冬季閉鎖の列を足したテンプレート
+const HEADER_CLOSURE = [...HEADER_PLACE, "winter_closed_from", "winter_closed_to", "winter_closure_note"];
+// トイレ・サウナの列を足した最新のテンプレート
+const HEADER_LATEST = [...HEADER_CLOSURE, "toilet_types", "sauna_types"];
+const HEADERS = [HEADER, HEADER_FULL, HEADER_PLACE, HEADER_CLOSURE, HEADER_LATEST].map((h) => h.join(","));
 const MAX_DAY = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const isMonthDay = (v) => /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(v) && Number(v.slice(3)) <= MAX_DAY[Number(v.slice(0, 2)) - 1];
 
@@ -96,8 +102,8 @@ rows.forEach((cells, i) => {
     const values = m ? m[1].split(",") : [];
     if (!m || values.some((v) => !allowed.includes(v)) || new Set(values).size !== values.length) {
       err(`${k} は {${allowed.join(",")}} から選んで {a,b} の形で書く（重複なし）: "${r[k]}"`);
-    } else if (k === "ac_power" && values.includes("none") && values.length > 1) {
-      err(`ac_power の none はほかと一緒に書けません: "${r[k]}"`);
+    } else if (EXCLUSIVE_NONE.includes(k) && values.includes("none") && values.length > 1) {
+      err(`${k} の none はほかと一緒に書けません: "${r[k]}"`);
     }
   }
   if (r.shop_items && r.has_shop !== "true") err("shop_items は has_shop が true のときだけ書けます");

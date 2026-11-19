@@ -7,14 +7,6 @@ import { PlaceIdField } from "@/components/place-id-field";
 import type { Campsite } from "@/lib/labels";
 import { WinterClosureFields } from "@/components/winter-closure-fields";
 
-/** 今ある4項目は「あり・なし」だけ（チェックしなければなし） */
-export const BASIC_FACILITIES = {
-  car_access: "車乗り入れ",
-  has_hot_water: "炊事場お湯",
-  has_shower: "シャワー",
-  has_bath: "風呂",
-} as const;
-
 export function FacilitiesForm({
   campsite,
   action,
@@ -26,27 +18,7 @@ export function FacilitiesForm({
 
   return (
     <form action={formAction} className="space-y-6 rounded-xl border border-stone-200 bg-white p-4">
-      <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-stone-700">
-          あるもの<span className="ml-2 text-xs font-normal text-stone-500">チェックしないものは「なし」</span>
-        </legend>
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-          {Object.entries(BASIC_FACILITIES).map(([key, label]) => (
-            <label key={key} className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                name={key}
-                value="yes"
-                defaultChecked={campsite[key as keyof typeof BASIC_FACILITIES]}
-                className="h-4 w-4 accent-emerald-700"
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <FacilityFields initial={campsite} unknownLabel="未入力" />
+      <FacilityFields initial={campsite} unknownLabel="未入力" basicOffLabel="なし" />
 
       <PlaceIdField defaultValue={campsite.google_place_id} />
 

@@ -1,1 +1,1 @@
-slug,name,prefecture,address,lat,lng,location_type,site_style,car_access,has_hot_water,has_shower,has_bath,fire_rule,official_url,has_kitchen,garbage,ac_power,has_shop,shop_items,has_wifi,payment_methods,google_place_id,winter_closed_from,winter_closed_to,winter_closure_note
+slug,name,prefecture,address,lat,lng,location_type,site_style,car_access,has_hot_water,has_shower,has_bath,fire_rule,official_url,has_kitchen,garbage,ac_power,has_shop,shop_items,has_wifi,payment_methods,google_place_id,winter_closed_from,winter_closed_to,winter_closure_note,toilet_types,sauna_types

@@ -3,6 +3,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, CHECKIN_COLUMNS } from "@/lib/campsites";
 import { BUG_LEVEL, SLEEP_QUALITY, type Checkin } from "@/lib/labels";
+import { tempOf } from "@/lib/stay";
 import { SITE_NAME } from "@/lib/site";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
@@ -43,11 +44,18 @@ export const visitedMonth = (c: Checkin) => Number(c.visited_on.slice(5, 7));
 /** カード画像の3つの枠。気温の記録がなければ気温の枠は出さない */
 export function cardTiles(c: Checkin): { label: string; value: string; sub: string }[] {
   const tiles = [];
-  if (c.min_temp_c != null) {
+  const t = tempOf(c);
+  if (t) {
     tiles.push({
-      label: "① 明け方の気温",
-      value: `${Number(c.min_temp_c)}℃`,
-      sub: c.sleep_quality ? SLEEP_QUALITY[c.sleep_quality] : c.temp_measured ? "温度計で実測" : "体感",
+      label: t.estimated ? "① 夜の最低気温" : "① 明け方の気温",
+      value: `${t.value}℃`,
+      sub: t.estimated
+        ? "気象データの推定"
+        : c.sleep_quality
+          ? SLEEP_QUALITY[c.sleep_quality]
+          : c.temp_measured
+            ? "温度計で実測"
+            : "体感",
     });
   }
   tiles.push({ label: "② 地面の固さ", value: PEG_SHORT[c.peg_needed], sub: "必要だったペグ" });
@@ -58,7 +66,9 @@ export function cardTiles(c: Checkin): { label: string; value: string; sub: stri
 /** X に投稿する文面（投稿前に自由に書き換えられる） */
 export function shareText(c: Checkin, campsiteName: string): string {
   const parts: string[] = [];
-  if (c.min_temp_c != null) parts.push(`${c.temp_at_dawn ? "明け方" : "最低"}${Number(c.min_temp_c)}℃`);
+  if (c.nights > 1) parts.push(`${c.nights}泊`);
+  const t = tempOf(c);
+  if (t) parts.push(`${t.label}${t.value}℃${t.estimated ? "（推定）" : ""}`);
   parts.push(PEG_PHRASE[c.peg_needed]);
   parts.push(
     c.fire_status === "done" ? "焚き火できた" : c.fire_status === "skipped_wind" ? "風で焚き火は断念" : "焚き火は禁止",
