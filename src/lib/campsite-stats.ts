@@ -1,23 +1,46 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ALL_CHECKINS_TAG, SUMMARIES_TAG, checkinsTag } from "@/lib/campsites";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE, WEATHER } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 type Row = {
   visited_on: string;
   min_temp_c: number | null;
+  est_min_temp_c: number | null;
   sleeping_bag_type: keyof typeof SLEEPING_BAG_TYPE | null;
   peg_needed: keyof typeof PEG_NEEDED;
   fire_status: keyof typeof FIRE_STATUS;
   bug_level: number | null;
   party_type: keyof typeof PARTY_TYPE | null;
   heaters: (keyof typeof HEATER)[] | null;
-  weather: (keyof typeof WEATHER)[] | null;
 };
 
 /** 虫の棒グラフの名前（棒の見出しが「虫」なので短く） */
 export const BUG_BARS = { "1": "少ない", "2": "ふつう", "3": "多い" } as const;
+
+/** 気温帯（寝袋タイプの目安 10℃・0℃・-10℃ にそろえる）。暖かい順 */
+export const TEMP_BANDS = {
+  warm: "10℃〜",
+  mild: "0〜10℃",
+  cold: "-10〜0℃",
+  severe: "〜-10℃",
+} as const;
+
+const bandOf = (t: number): keyof typeof TEMP_BANDS => (t >= 10 ? "warm" : t >= 0 ? "mild" : t >= -10 ? "cold" : "severe");
+
+/**
+ * ある月の夜の最低気温。本人が入れた気温と、それがないときの気象データの推定値の両方を使う
+ * （estimated = そのうち推定値の件数）。気温帯は暖かい順のまま（件数順に並べ替えない）
+ */
+export type MonthTemp = {
+  count: number;
+  estimated: number;
+  avg: number | null;
+  coldest: number | null;
+  warmest: number | null;
+  bands: Breakdown<keyof typeof TEMP_BANDS>;
+};
 
 /** 選択肢ごとの件数（多い順）。0件の選択肢も残して分布を表示できるようにする */
 export type Breakdown<K extends string> = { key: K; count: number }[];
@@ -26,13 +49,14 @@ export type Breakdown<K extends string> = { key: K; count: number }[];
 export type Tally<K extends string> = { items: Breakdown<K>; total: number };
 
 /**
- * ある月の現地コンディション（焚き火・寝袋・暖房・虫・誰と・天気）。年をまたいで同じ月をまとめて数える。
+ * ある月の現地コンディション（気温・焚き火・寝袋・暖房・虫・誰と）。年をまたいで同じ月をまとめて数える。
  * 任意の項目は「わからない」（null）を数えず、記録した投稿の数を分母にする
  */
 export type MonthConditions = {
   month: number; // 1〜12
   /** その月のソト活の数 */
   count: number;
+  temp: MonthTemp;
   /** 焚き火（必須項目なので total はその月の投稿の数） */
   fire: Tally<keyof typeof FIRE_STATUS>;
   bag: Tally<keyof typeof SLEEPING_BAG_TYPE>;
@@ -40,8 +64,6 @@ export type MonthConditions = {
   heaters: Tally<keyof typeof HEATER>;
   bug: Tally<keyof typeof BUG_BARS>;
   party: Tally<keyof typeof PARTY_TYPE>;
-  /** 天気（1件の投稿で複数あれば、それぞれ数える） */
-  weather: Tally<keyof typeof WEATHER>;
 };
 
 export type CampsiteStats = {
@@ -155,7 +177,7 @@ export async function getCampsiteStats(campsiteId: string): Promise<CampsiteStat
   const { data, error } = await supabase
     .from("checkins")
     .select(
-      "visited_on, min_temp_c, sleeping_bag_type, peg_needed, fire_status, bug_level, party_type, heaters, weather",
+      "visited_on, min_temp_c, est_min_temp_c, sleeping_bag_type, peg_needed, fire_status, bug_level, party_type, heaters",
     )
     .eq("campsite_id", campsiteId);
   if (error) throw new Error(`集計の取得に失敗しました: ${error.message}`);
@@ -186,15 +208,37 @@ function conditionsOf(month: number, rows: Row[]): MonthConditions {
   const parties = rows.flatMap((r) => (r.party_type ? [r.party_type] : []));
   const heaterRows = rows.filter((r) => r.heaters?.length);
   const bags = rows.flatMap((r) => (r.sleeping_bag_type ? [r.sleeping_bag_type] : []));
-  const weatherRows = rows.filter((r) => r.weather?.length);
   return {
     month,
     count: rows.length,
+    temp: monthTemp(rows),
     fire: { items: breakdown(FIRE_STATUS, rows.map((r) => r.fire_status)), total: rows.length },
     bag: { items: breakdown(SLEEPING_BAG_TYPE, bags), total: bags.length },
     heaters: { items: breakdown(HEATER, heaterRows.flatMap((r) => r.heaters ?? [])), total: heaterRows.length },
     bug: { items: breakdown(BUG_BARS, bugs), total: bugs.length },
     party: { items: breakdown(PARTY_TYPE, parties), total: parties.length },
-    weather: { items: breakdown(WEATHER, weatherRows.flatMap((r) => r.weather ?? [])), total: weatherRows.length },
+  };
+}
+
+function monthTemp(rows: Row[]): MonthTemp {
+  const temps: number[] = [];
+  let estimated = 0;
+  for (const r of rows) {
+    if (r.min_temp_c != null) temps.push(Number(r.min_temp_c));
+    else if (r.est_min_temp_c != null) {
+      temps.push(Number(r.est_min_temp_c));
+      estimated++;
+    }
+  }
+  return {
+    count: temps.length,
+    estimated,
+    avg: temps.length ? round1(temps.reduce((a, b) => a + b, 0) / temps.length) : null,
+    coldest: temps.length ? Math.min(...temps) : null,
+    warmest: temps.length ? Math.max(...temps) : null,
+    bands: (Object.keys(TEMP_BANDS) as (keyof typeof TEMP_BANDS)[]).map((key) => ({
+      key,
+      count: temps.filter((t) => bandOf(t) === key).length,
+    })),
   };
 }

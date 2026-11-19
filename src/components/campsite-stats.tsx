@@ -1,17 +1,19 @@
 import Link from "next/link";
 import {
   BUG_BARS,
+  TEMP_BANDS,
   type Breakdown,
   type CampsiteStats as Stats,
   type MonthConditions,
+  type MonthTemp,
 } from "@/lib/campsite-stats";
-import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE, WEATHER } from "@/lib/labels";
+import { FIRE_STATUS, HEATER, PARTY_TYPE, PEG_NEEDED, SLEEPING_BAG_TYPE } from "@/lib/labels";
 
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
 /**
  * キャンプ場ページ上部の「現地コンディション」。投稿の羅列より先に結論が見えるようにする。
- * 焚き火・寝袋・暖房・虫・誰と・天気は今月（month）の分を出し、月別のページへ案内する
+ * 気温・焚き火・寝袋・暖房・虫・誰とは今月（month）の分を出し、月別のページへ案内する
  */
 export function CampsiteStats({ stats, month, slug }: { stats: Stats; month: number; slug: string }) {
   if (stats.total === 0) {
@@ -46,7 +48,7 @@ export function CampsiteStats({ stats, month, slug }: { stats: Stats; month: num
 }
 
 /**
- * ある月の焚き火・寝袋・暖房・虫・誰と・天気。キャンプ場ページ（今月）と月別ページで使う。
+ * ある月の気温・焚き火・寝袋・暖房・虫・誰と。キャンプ場ページ（今月）と月別ページで使う。
  * 任意の項目は記録した投稿の数を分母にする（「わからない」は数えない。暖房は複数選べるので合計が100%を超えることがある）
  */
 export function MonthConditionsSection({
@@ -77,6 +79,7 @@ export function MonthConditionsSection({
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <TempCard temp={c.temp} />
           <Card title="③ 焚き火" note={recorded(c.fire.total)}>
             <MeterList items={c.fire.items} labels={FIRE_STATUS} total={c.fire.total} />
           </Card>
@@ -91,9 +94,6 @@ export function MonthConditionsSection({
           </Card>
           <Card title="誰と" note={recorded(c.party.total)}>
             <MeterList items={c.party.items} labels={PARTY_TYPE} total={c.party.total} />
-          </Card>
-          <Card title="天気" note={recorded(c.weather.total)}>
-            <MeterList items={c.weather.items} labels={WEATHER} total={c.weather.total} />
           </Card>
         </div>
       )}
@@ -139,19 +139,48 @@ function FireTile({ conditions: c }: { conditions: MonthConditions }) {
   );
 }
 
+/* ---------- その月の気温（数字と気温帯の横棒） ---------- */
+
+/** 本人が入れた気温と、ないときは気象データの推定値で数える（推定の件数を添える） */
+function TempCard({ temp: t }: { temp: MonthTemp }) {
+  const note = t.count ? `${t.count}件の記録から${t.estimated ? `（うち推定${t.estimated}件）` : ""}` : undefined;
+  return (
+    <Card title="気温（夜の最低）" note={note}>
+      {t.count === 0 ? (
+        <p className="text-sm text-stone-400">記録なし</p>
+      ) : (
+        <>
+          <div>
+            <p className="text-xl font-bold leading-tight">平均 {t.avg}℃</p>
+            <p className="mt-1 text-xs text-stone-500">
+              いちばん冷えた {t.coldest}℃・いちばん暖かい {t.warmest}℃
+            </p>
+          </div>
+          <MeterList items={t.bands} labels={TEMP_BANDS} total={t.count} showEmpty />
+        </>
+      )}
+    </Card>
+  );
+}
+
 /* ---------- 内訳（名前・棒・件数を1行ずつ） ---------- */
 
 function MeterList<K extends string>({
   items,
   labels,
   total,
+  showEmpty = false,
 }: {
   items: Breakdown<K>;
   labels: Record<K, string>;
   total: number;
+  /** 0件の行も出す（気温帯のように、並びに意味があるとき） */
+  showEmpty?: boolean;
 }) {
-  const shown = items.filter((i) => i.count > 0);
-  if (shown.length === 0) return <p className="text-sm text-stone-400">記録なし</p>;
+  const shown = showEmpty ? items : items.filter((i) => i.count > 0);
+  if (!items.some((i) => i.count > 0)) return <p className="text-sm text-stone-400">記録なし</p>;
+  // 一番多いもの（同数なら上のもの）を強調する。気温帯は並べ替えないので位置ではなく件数で決める
+  const top = shown.reduce((best, i, idx) => (i.count > shown[best].count ? idx : best), 0);
   return (
     <ul className="space-y-2">
       {shown.map((i, idx) => (
@@ -165,7 +194,7 @@ function MeterList<K extends string>({
           <div className="mt-1 h-1.5 rounded-full bg-stone-100">
             {/* 一番多いものだけ濃い色で強調し、他は控えめにする */}
             <div
-              className={`h-1.5 rounded-full ${idx === 0 ? "bg-emerald-700" : "bg-stone-400"}`}
+              className={`h-1.5 rounded-full ${idx === top ? "bg-emerald-700" : "bg-stone-400"}`}
               style={{ width: `${pct(i.count, total)}%` }}
             />
           </div>
